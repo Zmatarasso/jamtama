@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:jamtama/src/screens/game_screen.dart';  // Add this.
+import 'package:jamtama/src/screens/game_screen.dart';  // Full package path for consistency.
 
-class JamtamaApp extends StatelessWidget {  // Renamed for consistency; optional.
-  const JamtamaApp({super.key});
+class OnitamaApp extends StatelessWidget {
+  const OnitamaApp({super.key});
 
   @override
   Widget build(BuildContext context) {
