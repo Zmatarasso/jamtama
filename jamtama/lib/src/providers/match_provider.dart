@@ -12,12 +12,16 @@ import '../models/round_state.dart';
 class MatchNotifier extends Notifier<MatchState> {
   @override
   MatchState build() => MatchState(
-        phase: MatchPhase.deckSelection,
+        phase: MatchPhase.menu,
         redDeck: redDefaultDeck,
         blueDeck: blueDefaultDeck,
         redRemaining: List.of(redDefaultDeck.cards),
         blueRemaining: List.of(blueDefaultDeck.cards),
       );
+
+  void startLocalMatch() {
+    state = state.copyWith(phase: MatchPhase.deckSelection);
+  }
 
   // ---------------------------------------------------------------------------
   // Deck selection
@@ -269,8 +273,8 @@ class MatchNotifier extends Notifier<MatchState> {
     _drawFor(Player.red);
   }
 
-  /// Restart the entire match.
-  void restartMatch() {
+  /// Return to the main menu.
+  void returnToMenu() {
     state = build();
   }
 

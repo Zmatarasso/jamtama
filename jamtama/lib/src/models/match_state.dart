@@ -2,7 +2,7 @@ import 'card.dart';
 import 'deck.dart';
 import 'round_state.dart';
 
-enum MatchPhase { deckSelection, draftingRed, draftingBlue, playing, matchOver }
+enum MatchPhase { menu, deckSelection, draftingRed, draftingBlue, playing, matchOver }
 
 const _s = Object();
 
