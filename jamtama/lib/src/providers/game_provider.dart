@@ -45,8 +45,9 @@ class GameNotifier extends Notifier<GameState> {
   @override
   GameState build() => const GameState();
 
-  /// Initializes board and cards.
+  /// Initializes board and cards. No-op if already initialized.
   void initGame() {
+    if (state.pieces.isNotEmpty) return;
     state = state.copyWith(
       pieces: [
         Piece(type: PieceType.master, player: Player.red, row: 0, col: 2),

@@ -1,18 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:jamtama/src/screens/game_screen.dart';  // Add this.
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:jamtama/src/app.dart';
 
-class JamtamaApp extends StatelessWidget {  // Renamed for consistency; optional.
-  const JamtamaApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Jamtama',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        useMaterial3: true,
-      ),
-      home: const GameScreen(),
-    );
-  }
+void main() {
+  runApp(const ProviderScope(child: JamtamaApp()));
 }
