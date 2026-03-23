@@ -4,6 +4,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/card_definitions.dart';
+import '../game_logic.dart';
 import '../models/card.dart';
 import '../models/match_state.dart';
 import '../models/piece.dart';
@@ -148,7 +149,7 @@ class MatchNotifier extends Notifier<MatchState> {
 
     final newPending = round.pendingCard == card ? null : card;
     final validMoves = (newPending != null && round.selectedPiece != null)
-        ? _computeValidMoves(round.selectedPiece!, newPending, round.pieces)
+        ? computeValidMoves(round.selectedPiece!, newPending, round.pieces)
         : <BoardPos>[];
 
     state = state.copyWith(
@@ -167,7 +168,7 @@ class MatchNotifier extends Notifier<MatchState> {
 
     final newSelected = round.selectedPiece == piece ? null : piece;
     final validMoves = (newSelected != null && round.pendingCard != null)
-        ? _computeValidMoves(newSelected, round.pendingCard!, round.pieces)
+        ? computeValidMoves(newSelected, round.pendingCard!, round.pieces)
         : <BoardPos>[];
 
     state = state.copyWith(
@@ -278,37 +279,7 @@ class MatchNotifier extends Notifier<MatchState> {
     state = build();
   }
 
-  // ---------------------------------------------------------------------------
-  // Move computation
-  // ---------------------------------------------------------------------------
-
-  static List<BoardPos> _computeValidMoves(
-    Piece piece,
-    CardDefinition card,
-    List<Piece> pieces,
-  ) {
-    final isRed = piece.player == Player.red;
-    final result = <BoardPos>[];
-
-    for (final move in card.moves) {
-      // Red: forward = +row, left = -col.
-      // Blue: card is rotated 180° — both axes flip.
-      final dr = isRed ? move.dy : -move.dy;
-      final dc = isRed ? move.dx : -move.dx;
-      final newRow = piece.row + dr;
-      final newCol = piece.col + dc;
-
-      if (newRow < 0 || newRow > 4 || newCol < 0 || newCol > 4) continue;
-
-      final target =
-          pieces.firstWhereOrNull((p) => p.row == newRow && p.col == newCol);
-      if (target?.player == piece.player) continue; // can't capture own piece
-
-      result.add(BoardPos(newRow, newCol));
-    }
-
-    return result;
-  }
+  // Move computation delegated to game_logic.dart for testability.
 }
 
 final matchProvider =
