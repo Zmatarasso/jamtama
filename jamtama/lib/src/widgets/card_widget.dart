@@ -3,15 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/card.dart';
 
 /// Renders a single card with its name and a 5×5 move diagram.
-///
-/// The diagram uses the player-relative coordinate convention:
-///   centre (2,2) = current position
-///   dy > 0 = forward (up on the diagram)
-///   dx > 0 = right
-///
-/// When displayed inside a RotatedBox(quarterTurns:2) for the opposing
-/// player, the diagram automatically appears from that player's viewpoint.
-class CardWidget extends StatelessWidget {
+class CardWidget extends StatefulWidget {
   final CardDefinition card;
   final bool selected;
   final bool dimmed;
@@ -26,56 +18,75 @@ class CardWidget extends StatelessWidget {
   });
 
   @override
+  State<CardWidget> createState() => _CardWidgetState();
+}
+
+class _CardWidgetState extends State<CardWidget> {
+  bool _hovering = false;
+
+  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: 76,
-        height: 100,
-        transform: Matrix4.translationValues(0, selected ? -6.0 : 0, 0),
-        decoration: BoxDecoration(
-          color: dimmed
-              ? const Color(0xFF3A3028)
-              : const Color(0xFFF5F0E0),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: selected ? Colors.amber : Colors.transparent,
-            width: 2.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: selected
-                  ? Colors.amber.withAlpha(120)
-                  : Colors.black54,
-              blurRadius: selected ? 10 : 4,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(5),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                card.name,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: dimmed ? Colors.grey[500] : Colors.black87,
-                ),
-              ),
-              _MoveDiagram(card: card, dimmed: dimmed),
-              Container(
-                width: 16,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: card.stampColor.withAlpha(dimmed ? 80 : 200),
-                  borderRadius: BorderRadius.circular(3),
-                ),
+    final lift = widget.selected ? -8.0 : (_hovering ? -4.0 : 0.0);
+    final borderColor = widget.selected
+        ? Colors.amber
+        : (_hovering ? Colors.amber.withAlpha(140) : Colors.transparent);
+    final shadowColor = widget.selected
+        ? Colors.amber.withAlpha(120)
+        : (_hovering ? Colors.amber.withAlpha(60) : Colors.black54);
+    final shadowBlur = widget.selected ? 12.0 : (_hovering ? 8.0 : 4.0);
+
+    return MouseRegion(
+      cursor: widget.onTap != null
+          ? SystemMouseCursors.click
+          : MouseCursor.defer,
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          width: 76,
+          height: 100,
+          transform: Matrix4.translationValues(0, lift, 0),
+          decoration: BoxDecoration(
+            color: widget.dimmed
+                ? const Color(0xFF3A3028)
+                : const Color(0xFFF5F0E0),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: borderColor, width: 2.5),
+            boxShadow: [
+              BoxShadow(
+                color: shadowColor,
+                blurRadius: shadowBlur,
+                offset: const Offset(0, 3),
               ),
             ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(5),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  widget.card.name,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: widget.dimmed ? Colors.grey[500] : Colors.black87,
+                  ),
+                ),
+                _MoveDiagram(card: widget.card, dimmed: widget.dimmed),
+                Container(
+                  width: 16,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: widget.card.stampColor
+                        .withAlpha(widget.dimmed ? 80 : 200),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -106,7 +117,6 @@ class _MoveDiagram extends StatelessWidget {
           final r = i ~/ 5;
           final c = i % 5;
           final isCenter = r == 2 && c == 2;
-          // Move (dx,dy) maps to diagram cell (2 - dy, 2 + dx).
           final isMove =
               card.moves.any((m) => (2 - m.dy) == r && (2 + m.dx) == c);
 
@@ -114,9 +124,8 @@ class _MoveDiagram extends StatelessWidget {
           if (isCenter) {
             cellColor = dimmed ? Colors.grey[600]! : Colors.grey[700]!;
           } else if (isMove) {
-            cellColor = dimmed
-                ? Colors.green.withAlpha(80)
-                : const Color(0xFF4CAF50);
+            cellColor =
+                dimmed ? Colors.green.withAlpha(80) : const Color(0xFF4CAF50);
           } else {
             cellColor = dimmed ? Colors.grey[800]! : Colors.grey[300]!;
           }

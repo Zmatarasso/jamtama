@@ -333,12 +333,20 @@ class _Cell extends ConsumerWidget {
 
     return Draggable<Piece>(
       data: piece,
+      // Center the piece graphic under the cursor while dragging.
+      feedbackOffset: const Offset(-38, -38),
       onDragStarted: () {
-        ref.read(matchProvider.notifier).selectPiece(piece);
+        // Only call selectPiece if not already selected — calling it on an
+        // already-selected piece would toggle it off and clear validMoves,
+        // causing every drop to be rejected.
+        final round = ref.read(matchProvider).round;
+        if (round?.selectedPiece != piece) {
+          ref.read(matchProvider.notifier).selectPiece(piece);
+        }
       },
       feedback: Material(
         color: Colors.transparent,
-        child: _PieceWidget(piece: piece, selected: true, size: 44),
+        child: _PieceWidget(piece: piece, selected: true, size: 76),
       ),
       childWhenDragging: Opacity(
         opacity: 0.3,
@@ -356,49 +364,69 @@ class _Cell extends ConsumerWidget {
 // Piece widget
 // ---------------------------------------------------------------------------
 
-class _PieceWidget extends StatelessWidget {
+class _PieceWidget extends StatefulWidget {
   final Piece piece;
   final bool selected;
+  // Base size for a student piece; master is 10% larger.
   final double size;
 
   const _PieceWidget({
     required this.piece,
     this.selected = false,
-    this.size = 38,
+    this.size = 76,
   });
 
   @override
+  State<_PieceWidget> createState() => _PieceWidgetState();
+}
+
+class _PieceWidgetState extends State<_PieceWidget> {
+  bool _hovering = false;
+
+  @override
   Widget build(BuildContext context) {
-    final isMaster = piece.type == PieceType.master;
-    final color = piece.player == Player.red
+    final isMaster = widget.piece.type == PieceType.master;
+    final color = widget.piece.player == Player.red
         ? const Color(0xFFDC143C)
         : const Color(0xFF4169E1);
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 100),
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color,
-        border: Border.all(
-          color: selected ? Colors.amber : Colors.white.withAlpha(80),
-          width: selected ? 2.5 : 1.5,
+    // Masters are 10% bigger; hovering scales up an additional 10%.
+    final baseSize = isMaster ? widget.size * 1.1 : widget.size;
+    final effectiveSize = _hovering ? baseSize * 1.1 : baseSize;
+
+    final borderColor = widget.selected
+        ? Colors.amber
+        : (_hovering ? Colors.white.withAlpha(200) : Colors.white.withAlpha(80));
+    final borderWidth = widget.selected ? 2.5 : (_hovering ? 2.0 : 1.5);
+    final shadowColor = widget.selected
+        ? Colors.amber.withAlpha(160)
+        : (_hovering ? color.withAlpha(180) : Colors.black38);
+    final shadowBlur = widget.selected ? 10.0 : (_hovering ? 14.0 : 3.0);
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        width: effectiveSize,
+        height: effectiveSize,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: color,
+          border: Border.all(color: borderColor, width: borderWidth),
+          boxShadow: [
+            BoxShadow(color: shadowColor, blurRadius: shadowBlur),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: selected ? Colors.amber.withAlpha(160) : Colors.black38,
-            blurRadius: selected ? 8 : 3,
-          ),
-        ],
-      ),
-      child: Center(
-        child: Text(
-          isMaster ? '★' : '●',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: isMaster ? size * 0.42 : size * 0.32,
-            height: 1,
+        child: Center(
+          child: Text(
+            isMaster ? '★' : '●',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: isMaster ? effectiveSize * 0.42 : effectiveSize * 0.32,
+              height: 1,
+            ),
           ),
         ),
       ),

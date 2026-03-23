@@ -4,7 +4,7 @@
     {
       "name": "Flutter Web (Preview)",
       "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "cd /d C:\\Users\\Kazta\\Documents\\jamtama\\.claude\\worktrees\\pensive-jang\\jamtama && C:\\Users\\Kazta\\Documents\\flutter\\bin\\flutter.bat run -d web-server --web-port 5002 --web-hostname 0.0.0.0 --web-renderer html"],
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\Kazta\\Documents\\jamtama\\.claude\\worktrees\\pensive-jang\\jamtama && C:\\Users\\Kazta\\Documents\\flutter\\bin\\flutter.bat run -d web-server --web-port 5002 --web-hostname 0.0.0.0"],
       "port": 5002
     },
     {
