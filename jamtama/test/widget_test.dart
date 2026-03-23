@@ -1,17 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jamtama/src/providers/game_provider.dart';
-import 'package:jamtama/src/models/piece.dart';  // Add for Player.
+import 'package:jamtama/src/providers/match_provider.dart';
+import 'package:jamtama/src/models/match_state.dart';
 
 void main() {
-  test('Game initializes correctly', () {
+  test('Match initializes to deckSelection phase', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
-    final notifier = container.read(gameProvider.notifier);
-    notifier.initGame();
-    final state = container.read(gameProvider);
+    final state = container.read(matchProvider);
 
-    expect(state.pieces.length, 10);
-    expect(state.currentTurn, Player.red);
+    expect(state.phase, MatchPhase.deckSelection);
+    expect(state.redDeck.cards.length, 6);
+    expect(state.blueDeck.cards.length, 6);
   });
 }
