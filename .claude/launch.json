@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Flutter Web (Preview)",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\Kazta\\Documents\\jamtama\\.claude\\worktrees\\pensive-jang\\jamtama && C:\\Users\\Kazta\\Documents\\flutter\\bin\\flutter.bat run -d web-server --web-port 5002 --web-hostname 0.0.0.0 --web-renderer html"],
+      "port": 5002
+    },
+    {
+      "name": "Flutter Web (Chrome)",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\Kazta\\Documents\\jamtama\\.claude\\worktrees\\pensive-jang\\jamtama && C:\\Users\\Kazta\\Documents\\flutter\\bin\\flutter.bat run -d chrome --web-port 5003"],
+      "port": 5003
+    },
+    {
+      "name": "Flutter Windows (Desktop)",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\Kazta\\Documents\\jamtama\\.claude\\worktrees\\pensive-jang\\jamtama && C:\\Users\\Kazta\\Documents\\flutter\\bin\\flutter.bat run -d windows"],
+      "port": 0
+    }
+  ]
+}

@@ -476,7 +476,7 @@ class RoundOverDialog extends ConsumerWidget {
           onPressed: () {
             Navigator.of(context).pop();
             if (isMatchOver) {
-              ref.read(matchProvider.notifier).restartMatch();
+              ref.read(matchProvider.notifier).returnToMenu();
             } else {
               ref.read(matchProvider.notifier).startNextRound();
             }

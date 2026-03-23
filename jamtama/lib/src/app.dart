@@ -7,6 +7,7 @@ import 'providers/match_provider.dart';
 import 'screens/card_draft_screen.dart';
 import 'screens/deck_selection_screen.dart';
 import 'screens/game_screen.dart';
+import 'screens/menu_screen.dart';
 
 class JamtamaApp extends StatelessWidget {
   const JamtamaApp({super.key});
@@ -67,6 +68,7 @@ class _RootRouter extends ConsumerWidget {
     });
 
     return switch (match.phase) {
+      MatchPhase.menu => const MenuScreen(),
       MatchPhase.deckSelection => const DeckSelectionScreen(),
       MatchPhase.draftingRed ||
       MatchPhase.draftingBlue =>
