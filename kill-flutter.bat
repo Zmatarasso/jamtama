@@ -1,0 +1,6 @@
+@echo off
+echo Killing Flutter dart processes...
+taskkill /F /IM dart.exe /T 2>nul && echo Done. || echo No dart.exe processes found.
+echo Killing Flutter-launched Chrome instances...
+taskkill /F /FI "WINDOWTITLE eq Flutter*" 2>nul
+echo Finished.
