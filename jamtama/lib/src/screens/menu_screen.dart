@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/match_provider.dart';
+import 'collection_screen.dart';
+import 'options_screen.dart';
 
 class MenuScreen extends ConsumerWidget {
   const MenuScreen({super.key});
@@ -52,9 +54,7 @@ class MenuScreen extends ConsumerWidget {
                     icon: Icons.style,
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => const _PlaceholderScreen(
-                          title: 'Collection',
-                        ),
+                        builder: (_) => const CollectionScreen(),
                       ),
                     ),
                   ),
@@ -64,9 +64,7 @@ class MenuScreen extends ConsumerWidget {
                     icon: Icons.settings,
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => const _PlaceholderScreen(
-                          title: 'Options',
-                        ),
+                        builder: (_) => const OptionsScreen(),
                       ),
                     ),
                   ),
@@ -188,39 +186,3 @@ class _MenuButton extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-
-class _PlaceholderScreen extends StatelessWidget {
-  final String title;
-  const _PlaceholderScreen({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF1A0F08),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1A0F08),
-        foregroundColor: Colors.white,
-        title: Text(
-          title.toUpperCase(),
-          style: const TextStyle(
-            letterSpacing: 4,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: const Center(
-        child: Text(
-          'Coming Soon',
-          style: TextStyle(
-            color: Colors.white24,
-            fontSize: 18,
-            letterSpacing: 3,
-          ),
-        ),
-      ),
-    );
-  }
-}

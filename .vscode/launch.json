@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Jamtama (Chrome)",
+      "request": "launch",
+      "type": "dart",
+      "program": "jamtama/lib/main.dart",
+      "args": [
+        "-d", "chrome",
+        "--web-port", "8080",
+        "--vmservice-out-file", ".flutter-vmservice"
+      ]
+    },
+    {
+      "name": "Jamtama (Windows)",
+      "request": "launch",
+      "type": "dart",
+      "program": "jamtama/lib/main.dart",
+      "args": ["-d", "windows"]
+    }
+  ]
+}

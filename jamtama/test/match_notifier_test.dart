@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jamtama/src/data/card_definitions.dart';
-import 'package:jamtama/src/models/card.dart';
 import 'package:jamtama/src/models/match_state.dart';
 import 'package:jamtama/src/models/piece.dart';
 import 'package:jamtama/src/models/round_state.dart';
@@ -303,7 +302,6 @@ void main() {
     });
 
     test('Capturing a student removes it from the board', () {
-      final c = makeContainer();
       // Manually craft a round where Red can immediately capture a Blue student.
       // Use the notifier's public API to set up the round, then manipulate via
       // a controlled round state injected through the match state.

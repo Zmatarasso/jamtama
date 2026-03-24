@@ -6,9 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/card_definitions.dart';
 import '../game_logic.dart';
 import '../models/card.dart';
+import '../models/deck.dart';
 import '../models/match_state.dart';
 import '../models/piece.dart';
 import '../models/round_state.dart';
+import '../models/saved_deck.dart';
 
 class MatchNotifier extends Notifier<MatchState> {
   @override
@@ -28,7 +30,25 @@ class MatchNotifier extends Notifier<MatchState> {
   // Deck selection
   // ---------------------------------------------------------------------------
 
+  void selectDeck(Player player, SavedDeck deck) {
+    final d = Deck(cards: deck.slots.whereType<CardDefinition>().toList());
+    if (player == Player.red) {
+      state = state.copyWith(
+        redDeckId: deck.id,
+        redDeck: d,
+        redRemaining: List.of(d.cards),
+      );
+    } else {
+      state = state.copyWith(
+        blueDeckId: deck.id,
+        blueDeck: d,
+        blueRemaining: List.of(d.cards),
+      );
+    }
+  }
+
   void confirmDeckSelection() {
+    if (state.redDeckId == null || state.blueDeckId == null) return;
     state = state.copyWith(phase: MatchPhase.draftingRed);
     _drawFor(Player.red);
   }

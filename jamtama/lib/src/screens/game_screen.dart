@@ -2,21 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collection/collection.dart';
 
+import '../cosmetics/models/board_cosmetic.dart';
+import '../cosmetics/models/master_piece_cosmetic.dart';
+import '../cosmetics/models/piece_cosmetic.dart';
+import '../cosmetics/models/student_piece_cosmetic.dart';
+import '../cosmetics/models/throne_cosmetic.dart';
+import '../cosmetics/providers/cosmetic_loadout_provider.dart';
 import '../models/piece.dart';
 import '../models/round_state.dart';
 import '../providers/match_provider.dart';
+import '../services/audio_service.dart';
 import '../widgets/card_widget.dart';
-
-// ---------------------------------------------------------------------------
-// Board rendering constants
-// ---------------------------------------------------------------------------
-const _boardBg = Color(0xFF2B1810);
-const _cellLight = Color(0xFFDEB887);
-const _cellDark = Color(0xFFA0522D);
-const _templeColor = Color(0xFFFFD700);
-const _validMoveColor = Color(0xFF4CAF50);
-const _selectedBorder = Color(0xFFFFD700);
-const _hoverColor = Color(0xFF8BC34A);
 
 class GameScreen extends ConsumerWidget {
   const GameScreen({super.key});
@@ -25,11 +21,14 @@ class GameScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final match = ref.watch(matchProvider);
     final round = match.round;
-
     if (round == null) return const SizedBox.shrink();
 
+    final board = ref.watch(cosmeticLoadoutProvider.select((l) => l.board));
+    final scenery =
+        ref.watch(cosmeticLoadoutProvider.select((l) => l.scenery));
+
     return Scaffold(
-      backgroundColor: _boardBg,
+      backgroundColor: scenery.backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -54,7 +53,7 @@ class GameScreen extends ConsumerWidget {
                   aspectRatio: 1,
                   child: Padding(
                     padding: const EdgeInsets.all(8),
-                    child: _Board(round: round),
+                    child: _Board(round: round, board: board),
                   ),
                 ),
               ),
@@ -79,8 +78,7 @@ class GameScreen extends ConsumerWidget {
 // ---------------------------------------------------------------------------
 
 class _ScoreBar extends StatelessWidget {
-  final dynamic match; // MatchState
-
+  final dynamic match;
   const _ScoreBar({required this.match});
 
   @override
@@ -122,7 +120,7 @@ class _ScoreBar extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Player area: hand cards + community card (for that player's side)
+// Player area: hand cards + community card
 // ---------------------------------------------------------------------------
 
 class _PlayerArea extends ConsumerWidget {
@@ -171,15 +169,18 @@ class _PlayerArea extends ConsumerWidget {
                   selected: isPending,
                   dimmed: !isActive,
                   onTap: isActive
-                      ? () =>
-                          ref.read(matchProvider.notifier).selectCard(card)
+                      ? () {
+                          ref.read(audioServiceProvider).playCardSelect(
+                              ref.read(cosmeticLoadoutProvider).uiSounds);
+                          ref.read(matchProvider.notifier).selectCard(card);
+                        }
                       : null,
                 ),
               );
             }).toList(),
           ),
 
-          // Community card (shown on Red's side for both players to see)
+          // Community card (shown on Red's side)
           if (player == Player.red) ...[
             Column(
               children: [
@@ -192,7 +193,7 @@ class _PlayerArea extends ConsumerWidget {
               ],
             ),
           ] else
-            const SizedBox(width: 76), // balance layout for Blue's side
+            const SizedBox(width: 76),
 
           // Label
           Text(
@@ -210,15 +211,24 @@ class _PlayerArea extends ConsumerWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Board
+// Board — reads cosmetics and passes them to each cell
 // ---------------------------------------------------------------------------
 
 class _Board extends ConsumerWidget {
   final RoundState round;
-  const _Board({required this.round});
+  final BoardCosmetic board;
+
+  const _Board({required this.round, required this.board});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final masterCosmetic =
+        ref.watch(cosmeticLoadoutProvider.select((l) => l.masterPiece));
+    final studentCosmetic =
+        ref.watch(cosmeticLoadoutProvider.select((l) => l.studentPiece));
+    final throneCosmetic =
+        ref.watch(cosmeticLoadoutProvider.select((l) => l.throne));
+
     return GridView.builder(
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -228,10 +238,18 @@ class _Board extends ConsumerWidget {
       ),
       itemCount: 25,
       itemBuilder: (context, index) {
-        // Render row 4 first (Blue's back row at top, Red's back row at bottom).
+        // Render row 4 first so Blue's back row appears at top.
         final row = 4 - (index ~/ 5);
         final col = index % 5;
-        return _Cell(row: row, col: col, round: round);
+        return _Cell(
+          row: row,
+          col: col,
+          round: round,
+          board: board,
+          masterCosmetic: masterCosmetic,
+          studentCosmetic: studentCosmetic,
+          throneCosmetic: throneCosmetic,
+        );
       },
     );
   }
@@ -245,18 +263,30 @@ class _Cell extends ConsumerWidget {
   final int row;
   final int col;
   final RoundState round;
+  final BoardCosmetic board;
+  final MasterPieceCosmetic masterCosmetic;
+  final StudentPieceCosmetic studentCosmetic;
+  final ThroneCosmetic throneCosmetic;
 
-  const _Cell({required this.row, required this.col, required this.round});
+  const _Cell({
+    required this.row,
+    required this.col,
+    required this.round,
+    required this.board,
+    required this.masterCosmetic,
+    required this.studentCosmetic,
+    required this.throneCosmetic,
+  });
 
   Color _baseColor(bool isTemple) {
-    if (isTemple) return _templeColor.withAlpha(80);
-    return ((row + col) % 2 == 0) ? _cellLight : _cellDark;
+    if (isTemple) return board.templeHighlightColor.withAlpha(80);
+    return ((row + col) % 2 == 0) ? board.lightTileColor : board.darkTileColor;
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final piece = round.pieces
-        .firstWhereOrNull((p) => p.row == row && p.col == col);
+    final piece =
+        round.pieces.firstWhereOrNull((p) => p.row == row && p.col == col);
     final pos = BoardPos(row, col);
     final isValidMove = round.validMoves.contains(pos);
     final isSelected =
@@ -268,7 +298,6 @@ class _Cell extends ConsumerWidget {
 
     return DragTarget<Piece>(
       onWillAcceptWithDetails: (_) {
-        // Read live state — not stale build-time capture.
         return ref
                 .read(matchProvider)
                 .round
@@ -277,31 +306,47 @@ class _Cell extends ConsumerWidget {
             false;
       },
       onAcceptWithDetails: (_) {
+        // Play move or capture sound depending on whether the target is occupied.
+        final liveRound = ref.read(matchProvider).round;
+        final targetPiece = liveRound?.pieces
+            .firstWhereOrNull((p) => p.row == row && p.col == col);
+        final isCapture =
+            targetPiece != null && targetPiece.player != liveRound?.currentTurn;
+        final audio = ref.read(audioServiceProvider);
+        final moveCosmetic = ref.read(cosmeticLoadoutProvider).moveEffect;
+        if (isCapture) {
+          audio.playCapture(moveCosmetic);
+        } else {
+          audio.playMove(moveCosmetic);
+        }
         ref.read(matchProvider.notifier).executeMove(row: row, col: col);
       },
       builder: (context, candidates, _) {
         final isHovering = candidates.isNotEmpty;
         Color bg = _baseColor(isTemple);
-        if (isHovering) bg = _hoverColor;
+        if (isHovering) bg = board.hoverColor;
 
         return AnimatedContainer(
           duration: const Duration(milliseconds: 100),
           decoration: BoxDecoration(
             color: bg,
             border: isSelected
-                ? Border.all(color: _selectedBorder, width: 2.5)
+                ? Border.all(color: Colors.amber, width: 2.5)
                 : null,
           ),
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // Valid-move dot (shown under pieces too, for clarity)
+              // Throne overlay on temple squares (behind pieces)
+              if (isTemple) _ThroneOverlay(cosmetic: throneCosmetic),
+
+              // Valid-move dot on empty squares
               if (isValidMove && piece == null)
                 Container(
                   width: 14,
                   height: 14,
                   decoration: BoxDecoration(
-                    color: _validMoveColor.withAlpha(200),
+                    color: board.validMoveColor.withAlpha(200),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -325,7 +370,12 @@ class _Cell extends ConsumerWidget {
     bool isSelected,
     bool isValidMove,
   ) {
-    final pieceWidget = _PieceWidget(piece: piece, selected: isSelected);
+    final pieceWidget = _PieceWidget(
+      piece: piece,
+      selected: isSelected,
+      masterCosmetic: masterCosmetic,
+      studentCosmetic: studentCosmetic,
+    );
 
     if (!isCurrentPlayer || round.phase != RoundPhase.playing) {
       return pieceWidget;
@@ -333,28 +383,68 @@ class _Cell extends ConsumerWidget {
 
     return Draggable<Piece>(
       data: piece,
-      // Center the piece graphic under the cursor while dragging.
       feedbackOffset: const Offset(-38, -38),
       onDragStarted: () {
-        // Only call selectPiece if not already selected — calling it on an
-        // already-selected piece would toggle it off and clear validMoves,
-        // causing every drop to be rejected.
         final round = ref.read(matchProvider).round;
         if (round?.selectedPiece != piece) {
+          ref.read(audioServiceProvider).playPieceSelect(
+              ref.read(cosmeticLoadoutProvider).uiSounds);
           ref.read(matchProvider.notifier).selectPiece(piece);
         }
       },
       feedback: Material(
         color: Colors.transparent,
-        child: _PieceWidget(piece: piece, selected: true, size: 76),
+        child: _PieceWidget(
+          piece: piece,
+          selected: true,
+          size: 76,
+          masterCosmetic: masterCosmetic,
+          studentCosmetic: studentCosmetic,
+        ),
       ),
       childWhenDragging: Opacity(
         opacity: 0.3,
         child: pieceWidget,
       ),
       child: GestureDetector(
-        onTap: () => ref.read(matchProvider.notifier).selectPiece(piece),
+        onTap: () {
+          ref.read(audioServiceProvider).playPieceSelect(
+              ref.read(cosmeticLoadoutProvider).uiSounds);
+          ref.read(matchProvider.notifier).selectPiece(piece);
+        },
         child: pieceWidget,
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Throne overlay — rendered on temple squares behind pieces
+// ---------------------------------------------------------------------------
+
+class _ThroneOverlay extends StatelessWidget {
+  final ThroneCosmetic cosmetic;
+  const _ThroneOverlay({required this.cosmetic});
+
+  @override
+  Widget build(BuildContext context) {
+    if (cosmetic.assetPath != null) {
+      return Positioned.fill(
+        child: Image.asset(
+          cosmetic.assetPath!,
+          fit: BoxFit.contain,
+        ),
+      );
+    }
+    // Programmatic fallback: concentric ring in the throne color.
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: cosmetic.fallbackColor.withAlpha(160),
+          width: 3,
+        ),
       ),
     );
   }
@@ -367,13 +457,16 @@ class _Cell extends ConsumerWidget {
 class _PieceWidget extends StatefulWidget {
   final Piece piece;
   final bool selected;
-  // Base size for a student piece; master is 10% larger.
   final double size;
+  final MasterPieceCosmetic masterCosmetic;
+  final StudentPieceCosmetic studentCosmetic;
 
   const _PieceWidget({
     required this.piece,
     this.selected = false,
     this.size = 76,
+    required this.masterCosmetic,
+    required this.studentCosmetic,
   });
 
   @override
@@ -386,11 +479,10 @@ class _PieceWidgetState extends State<_PieceWidget> {
   @override
   Widget build(BuildContext context) {
     final isMaster = widget.piece.type == PieceType.master;
-    final color = widget.piece.player == Player.red
+    final playerColor = widget.piece.player == Player.red
         ? const Color(0xFFDC143C)
         : const Color(0xFF4169E1);
 
-    // Masters are 10% bigger; hovering scales up an additional 10%.
     final baseSize = isMaster ? widget.size * 1.1 : widget.size;
     final effectiveSize = _hovering ? baseSize * 1.1 : baseSize;
 
@@ -400,8 +492,11 @@ class _PieceWidgetState extends State<_PieceWidget> {
     final borderWidth = widget.selected ? 2.5 : (_hovering ? 2.0 : 1.5);
     final shadowColor = widget.selected
         ? Colors.amber.withAlpha(160)
-        : (_hovering ? color.withAlpha(180) : Colors.black38);
+        : (_hovering ? playerColor.withAlpha(180) : Colors.black38);
     final shadowBlur = widget.selected ? 10.0 : (_hovering ? 14.0 : 3.0);
+
+    final PieceCosmetic cosmetic =
+        isMaster ? widget.masterCosmetic : widget.studentCosmetic;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -413,29 +508,44 @@ class _PieceWidgetState extends State<_PieceWidget> {
         height: effectiveSize,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: color,
+          // Asset path present → image asset tinted with player color.
+          // null → programmatic colored circle (current default look).
+          color: cosmetic.assetPath == null ? playerColor : null,
           border: Border.all(color: borderColor, width: borderWidth),
           boxShadow: [
             BoxShadow(color: shadowColor, blurRadius: shadowBlur),
           ],
         ),
-        child: Center(
-          child: Text(
-            isMaster ? '★' : '●',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: isMaster ? effectiveSize * 0.42 : effectiveSize * 0.32,
-              height: 1,
-            ),
-          ),
-        ),
+        child: cosmetic.assetPath != null
+            ? ClipOval(
+                child: ColorFiltered(
+                  colorFilter:
+                      ColorFilter.mode(playerColor, BlendMode.modulate),
+                  child: Image.asset(
+                    cosmetic.assetPath!,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              )
+            : Center(
+                child: Text(
+                  isMaster ? '★' : '●',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: isMaster
+                        ? effectiveSize * 0.42
+                        : effectiveSize * 0.32,
+                    height: 1,
+                  ),
+                ),
+              ),
       ),
     );
   }
 }
 
 // ---------------------------------------------------------------------------
-// Round-over overlay — shown as a dialog when round.phase == over
+// Round-over dialog
 // ---------------------------------------------------------------------------
 
 class RoundOverDialog extends ConsumerWidget {
