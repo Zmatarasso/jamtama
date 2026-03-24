@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jamtama/src/data/card_definitions.dart';
 import 'package:jamtama/src/game_logic.dart';
-import 'package:jamtama/src/models/card.dart';
 import 'package:jamtama/src/models/piece.dart';
 import 'package:jamtama/src/models/round_state.dart';
 

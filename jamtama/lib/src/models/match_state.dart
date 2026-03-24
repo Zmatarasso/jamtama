@@ -11,6 +11,10 @@ class MatchState {
   final Deck redDeck;
   final Deck blueDeck;
 
+  /// Which saved-deck ID each player has selected on the prep screen.
+  final String? redDeckId;
+  final String? blueDeckId;
+
   /// Cards still available to draw from each player's deck this match.
   final List<CardDefinition> redRemaining;
   final List<CardDefinition> blueRemaining;
@@ -33,6 +37,8 @@ class MatchState {
     required this.phase,
     required this.redDeck,
     required this.blueDeck,
+    this.redDeckId,
+    this.blueDeckId,
     required this.redRemaining,
     required this.blueRemaining,
     this.redDrafted = const [],
@@ -49,6 +55,8 @@ class MatchState {
     MatchPhase? phase,
     Deck? redDeck,
     Deck? blueDeck,
+    Object? redDeckId = _s,
+    Object? blueDeckId = _s,
     List<CardDefinition>? redRemaining,
     List<CardDefinition>? blueRemaining,
     List<CardDefinition>? redDrafted,
@@ -64,6 +72,8 @@ class MatchState {
       phase: phase ?? this.phase,
       redDeck: redDeck ?? this.redDeck,
       blueDeck: blueDeck ?? this.blueDeck,
+      redDeckId: identical(redDeckId, _s) ? this.redDeckId : redDeckId as String?,
+      blueDeckId: identical(blueDeckId, _s) ? this.blueDeckId : blueDeckId as String?,
       redRemaining: redRemaining ?? this.redRemaining,
       blueRemaining: blueRemaining ?? this.blueRemaining,
       redDrafted: redDrafted ?? this.redDrafted,
