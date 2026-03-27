@@ -4,7 +4,7 @@
 /// [fireTrail] — animated fire/ember trail follows the piece path.
 /// [shadowStep] — piece blinks out with a shadow afterimage and reappears.
 /// [teleport] — instant dissolve-out / dissolve-in with a flash.
-enum MoveEffectType { slide, fireTrail, shadowStep, teleport }
+enum MoveEffectType { slide, glitter, fireTrail, shadowStep, teleport }
 
 /// Cosmetic bundle for move animations and sound effects.
 ///

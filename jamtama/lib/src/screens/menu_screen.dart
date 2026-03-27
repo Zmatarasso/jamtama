@@ -50,6 +50,13 @@ class MenuScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 14),
                   _MenuButton(
+                    label: 'Test Match',
+                    icon: Icons.science_outlined,
+                    onTap: () =>
+                        ref.read(matchProvider.notifier).startTestMatch(),
+                  ),
+                  const SizedBox(height: 14),
+                  _MenuButton(
                     label: 'Collection',
                     icon: Icons.style,
                     onTap: () => Navigator.of(context).push(

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../models/board_cosmetic.dart';
+import '../models/board_cosmetic.dart' show BoardCosmetic, BoardTileStyle;
 import '../models/card_back_cosmetic.dart';
 import '../models/cosmetic_loadout.dart';
 import '../models/master_piece_cosmetic.dart';
+import '../models/piece_cosmetic.dart' show PieceStyle;
 import '../models/move_effect_cosmetic.dart';
 import '../models/scenery_cosmetic.dart';
 import '../models/student_piece_cosmetic.dart';
-import '../models/throne_cosmetic.dart';
+import '../models/throne_cosmetic.dart' show ThroneCosmetic, ThroneStyle;
 import '../models/ui_sounds_cosmetic.dart';
 
 // ---------------------------------------------------------------------------
@@ -26,10 +27,41 @@ const defaultStudentPiece = StudentPieceCosmetic(
   name: 'Classic Student',
 );
 
+const woodMasterPiece = MasterPieceCosmetic(
+  id: 'master_wood',
+  name: 'Wood Master',
+  style: PieceStyle.wood,
+);
+
+const woodStudentPiece = StudentPieceCosmetic(
+  id: 'student_wood',
+  name: 'Wood Student',
+  style: PieceStyle.wood,
+);
+
+const stoneMasterPiece = MasterPieceCosmetic(
+  id: 'master_stone',
+  name: 'Stone Master',
+  style: PieceStyle.stone,
+);
+
+const stoneStudentPiece = StudentPieceCosmetic(
+  id: 'student_stone',
+  name: 'Stone Student',
+  style: PieceStyle.stone,
+);
+
 const defaultThrone = ThroneCosmetic(
   id: 'throne_default',
   name: 'Classic Throne',
   fallbackColor: Color(0xFFFFD700),
+);
+
+const beatingHeartThrone = ThroneCosmetic(
+  id: 'throne_beating_heart',
+  name: 'Beating Heart',
+  style: ThroneStyle.beatingHeart,
+  fallbackColor: Color(0xFFDC143C),
 );
 
 const defaultBoard = BoardCosmetic(
@@ -41,6 +73,30 @@ const defaultBoard = BoardCosmetic(
   backgroundColor: Color(0xFF2B1810),
   validMoveColor: Color(0xFF4CAF50),
   hoverColor: Color(0xFF8BC34A),
+);
+
+const woodGrainBoard = BoardCosmetic(
+  id: 'board_wood_grain',
+  name: 'Wood Grain',
+  lightTileColor: Color(0xFFDEB887),
+  darkTileColor: Color(0xFF8B5E3C),
+  templeHighlightColor: Color(0xFFFFD700),
+  backgroundColor: Color(0xFF2A1005),
+  validMoveColor: Color(0xFF6DBF67),
+  hoverColor: Color(0xFFA5C46A),
+  tileStyle: BoardTileStyle.woodGrain,
+);
+
+const stoneBoard = BoardCosmetic(
+  id: 'board_stone',
+  name: 'Stone',
+  lightTileColor: Color(0xFFA8A098),
+  darkTileColor: Color(0xFF6A6058),
+  templeHighlightColor: Color(0xFFFFD700),
+  backgroundColor: Color(0xFF1A1A1E),
+  validMoveColor: Color(0xFF64B5F6),
+  hoverColor: Color(0xFF78C8FF),
+  tileStyle: BoardTileStyle.stone,
 );
 
 const defaultScenery = SceneryCosmetic(
@@ -60,9 +116,12 @@ const defaultMoveEffect = MoveEffectCosmetic(
   id: 'move_default',
   name: 'Slide',
   type: MoveEffectType.slide,
-  // Sound placeholders — set asset paths here when audio files are ready:
-  // moveSoundAsset: 'audio/move_slide.ogg',
-  // captureSoundAsset: 'audio/capture_default.ogg',
+);
+
+const glitterMoveEffect = MoveEffectCosmetic(
+  id: 'move_glitter',
+  name: 'Glitter',
+  type: MoveEffectType.glitter,
 );
 
 /// Default UI sounds — all null until real audio files are added.

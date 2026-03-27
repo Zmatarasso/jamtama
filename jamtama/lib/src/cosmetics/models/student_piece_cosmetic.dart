@@ -8,6 +8,7 @@ class StudentPieceCosmetic extends PieceCosmetic {
   const StudentPieceCosmetic({
     required super.id,
     required super.name,
+    super.style,
     super.assetPath,
   });
 }

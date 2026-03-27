@@ -5,18 +5,16 @@
       "name": "Jamtama (Chrome)",
       "request": "launch",
       "type": "dart",
-      "program": "jamtama/lib/main.dart",
-      "args": [
-        "-d", "chrome",
-        "--web-port", "8080",
-        "--vmservice-out-file", ".flutter-vmservice"
-      ]
+      "cwd": "${workspaceFolder}/jamtama",
+      "program": "lib/main.dart",
+      "args": ["-d", "chrome", "--web-port", "8080"]
     },
     {
       "name": "Jamtama (Windows)",
       "request": "launch",
       "type": "dart",
-      "program": "jamtama/lib/main.dart",
+      "cwd": "${workspaceFolder}/jamtama",
+      "program": "lib/main.dart",
       "args": ["-d", "windows"]
     }
   ]

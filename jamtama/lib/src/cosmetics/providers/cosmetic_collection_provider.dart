@@ -38,13 +38,13 @@ class CosmeticCollection {
 
 final cosmeticCollectionProvider = Provider<CosmeticCollection>((_) {
   return const CosmeticCollection(
-    masterPieces: [defaultMasterPiece],
-    studentPieces: [defaultStudentPiece],
-    thrones: [defaultThrone],
-    boards: [defaultBoard],
+    masterPieces: [defaultMasterPiece, woodMasterPiece, stoneMasterPiece],
+    studentPieces: [defaultStudentPiece, woodStudentPiece, stoneStudentPiece],
+    thrones: [defaultThrone, beatingHeartThrone],
+    boards: [defaultBoard, woodGrainBoard, stoneBoard],
     sceneries: [defaultScenery],
     cardBacks: [defaultCardBack],
-    moveEffects: [defaultMoveEffect],
+    moveEffects: [defaultMoveEffect, glitterMoveEffect],
     uiSoundSets: [defaultUiSounds],
   );
 });
