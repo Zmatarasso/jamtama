@@ -9,6 +9,7 @@ class MasterPieceCosmetic extends PieceCosmetic {
   const MasterPieceCosmetic({
     required super.id,
     required super.name,
+    super.style,
     super.assetPath,
   });
 }

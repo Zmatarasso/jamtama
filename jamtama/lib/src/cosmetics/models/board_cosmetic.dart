@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 
+/// How individual tiles are rendered on the board.
+/// [flat] uses a solid color (default).
+/// [woodGrain] draws procedural grain lines on top of the tile color.
+enum BoardTileStyle { flat, woodGrain, stone }
+
 /// Cosmetic data for the 5×5 board surface.
 ///
 /// Asset paths (optional) override the programmatic color fallbacks when set.
@@ -22,6 +27,7 @@ class BoardCosmetic {
   final Color backgroundColor;
   final Color validMoveColor;
   final Color hoverColor;
+  final BoardTileStyle tileStyle;
 
   const BoardCosmetic({
     required this.id,
@@ -36,6 +42,7 @@ class BoardCosmetic {
     required this.backgroundColor,
     required this.validMoveColor,
     required this.hoverColor,
+    this.tileStyle = BoardTileStyle.flat,
   });
 
   BoardCosmetic copyWith({
