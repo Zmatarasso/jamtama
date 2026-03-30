@@ -26,6 +26,24 @@ class MatchNotifier extends Notifier<MatchState> {
     state = state.copyWith(phase: MatchPhase.deckSelection);
   }
 
+  /// Skips deck selection and drafting — jumps straight into a playable round
+  /// using random cards from the default decks. Useful for quick testing.
+  void startTestMatch() {
+    final rng = Random();
+    final redCards = List.of(redDefaultDeck.cards)..shuffle(rng);
+    final blueCards = List.of(blueDefaultDeck.cards)..shuffle(rng);
+    state = state.copyWith(
+      redDeck: redDefaultDeck,
+      blueDeck: blueDefaultDeck,
+      redRemaining: redCards.skip(2).toList(),
+      blueRemaining: blueCards.skip(2).toList(),
+      redHand: redCards.take(2).toList(),
+      blueHand: blueCards.take(2).toList(),
+      phase: MatchPhase.playing,
+    );
+    _startRound();
+  }
+
   // ---------------------------------------------------------------------------
   // Deck selection
   // ---------------------------------------------------------------------------
