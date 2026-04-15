@@ -9,7 +9,7 @@ import '../models/move_effect_cosmetic.dart';
 import '../models/scenery_cosmetic.dart';
 import '../models/student_piece_cosmetic.dart';
 import '../models/throne_cosmetic.dart' show ThroneCosmetic, ThroneStyle;
-import '../models/ui_sounds_cosmetic.dart';
+import '../data/sound_packs.dart';
 
 // ---------------------------------------------------------------------------
 // Default (built-in) cosmetic instances.
@@ -124,18 +124,6 @@ const glitterMoveEffect = MoveEffectCosmetic(
   type: MoveEffectType.glitter,
 );
 
-/// Default UI sounds — all null until real audio files are added.
-/// Drop files in assets/audio/ and uncomment the paths below.
-const defaultUiSounds = UiSoundsCosmetic(
-  id: 'ui_sounds_default',
-  name: 'Classic',
-  // cardSelectSound: 'audio/card_select.ogg',
-  // pieceSelectSound: 'audio/piece_select.ogg',
-  // cardDraftSound: 'audio/card_draft.ogg',
-  // roundWinSound: 'audio/round_win.ogg',
-  // matchWinSound: 'audio/match_win.ogg',
-);
-
 const defaultLoadout = CosmeticLoadout(
   masterPiece: defaultMasterPiece,
   studentPiece: defaultStudentPiece,
@@ -144,5 +132,5 @@ const defaultLoadout = CosmeticLoadout(
   scenery: defaultScenery,
   cardBack: defaultCardBack,
   moveEffect: defaultMoveEffect,
-  uiSounds: defaultUiSounds,
+  soundPack: defaultSoundPack,
 );

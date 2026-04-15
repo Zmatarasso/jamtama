@@ -1,8 +1,8 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../cosmetics/models/move_effect_cosmetic.dart';
-import '../cosmetics/models/ui_sounds_cosmetic.dart';
+import '../cosmetics/models/sound_pack.dart';
+import '../providers/audio_settings_provider.dart';
 
 // ---------------------------------------------------------------------------
 // Provider
@@ -10,6 +10,15 @@ import '../cosmetics/models/ui_sounds_cosmetic.dart';
 
 final audioServiceProvider = Provider<AudioService>((ref) {
   final service = AudioService();
+
+  // Keep the service in sync with the volume sliders immediately — fires
+  // on first listen and on every subsequent settings change.
+  ref.listen<AudioSettings>(
+    audioSettingsProvider,
+    (_, settings) => service._applyVolume(settings),
+    fireImmediately: true,
+  );
+
   ref.onDispose(service.dispose);
   return service;
 });
@@ -18,62 +27,69 @@ final audioServiceProvider = Provider<AudioService>((ref) {
 // AudioService
 // ---------------------------------------------------------------------------
 
-/// Thin wrapper around audioplayers that handles null asset paths gracefully
-/// (null = silence) and keeps a small pool of players so overlapping sounds
-/// don't cut each other off.
+/// Plays game sounds using a small pool of [AudioPlayer]s so simultaneous
+/// events (e.g. a capture and a win sting) don't cut each other off.
 ///
-/// Call the named methods from game widgets/notifiers; pass the relevant
-/// cosmetic so the service uses whatever sounds are currently equipped.
+/// All methods accept a [SoundPack]. A null path inside the pack means that
+/// event plays silently — no error, no crash.
 ///
-/// Usage:
-/// ```dart
-/// final audio = ref.read(audioServiceProvider);
-/// audio.playCardSelect(ref.read(cosmeticLoadoutProvider).uiSounds);
-/// ```
+/// Volume is managed through [audioSettingsProvider]; call [_applyVolume]
+/// whenever the settings change (the provider above does this automatically).
 class AudioService {
-  // One dedicated player per sound role avoids overlap issues (e.g. a capture
-  // sound cutting off a move sound that fires at the same time).
-  final _move = AudioPlayer();
+  // One dedicated player per sound role.
+  final _move    = AudioPlayer();
   final _capture = AudioPlayer();
-  final _ui = AudioPlayer();
-  final _win = AudioPlayer();
+  final _ui      = AudioPlayer();
+  final _win     = AudioPlayer();
+
+  double _masterVol = 1.0;
+  double _sfxVol    = 1.0;
 
   AudioService() {
-    // Low-latency mode for all players.
     for (final p in [_move, _capture, _ui, _win]) {
       p.setReleaseMode(ReleaseMode.stop);
     }
   }
 
-  // ── Move effects ──────────────────────────────────────────────────────────
+  // ── Public API ────────────────────────────────────────────────────────────
 
-  Future<void> playMove(MoveEffectCosmetic cosmetic) =>
-      _play(_move, cosmetic.moveSoundAsset);
+  Future<void> playCardSelect(SoundPack pack) =>
+      _playSfx(_ui, pack.cardSelect);
 
-  Future<void> playCapture(MoveEffectCosmetic cosmetic) =>
-      _play(_capture, cosmetic.captureSoundAsset);
+  Future<void> playPieceSelect(SoundPack pack) =>
+      _playSfx(_ui, pack.pieceSelect);
 
-  // ── UI sounds ─────────────────────────────────────────────────────────────
+  Future<void> playCardDraft(SoundPack pack) =>
+      _playSfx(_ui, pack.cardDraft);
 
-  Future<void> playCardSelect(UiSoundsCosmetic cosmetic) =>
-      _play(_ui, cosmetic.cardSelectSound);
+  Future<void> playMove(SoundPack pack) =>
+      _playSfx(_move, pack.move);
 
-  Future<void> playPieceSelect(UiSoundsCosmetic cosmetic) =>
-      _play(_ui, cosmetic.pieceSelectSound);
+  Future<void> playCapture(SoundPack pack) =>
+      _playSfx(_capture, pack.capture);
 
-  Future<void> playCardDraft(UiSoundsCosmetic cosmetic) =>
-      _play(_ui, cosmetic.cardDraftSound);
+  Future<void> playRoundWin(SoundPack pack) =>
+      _playSfx(_win, pack.roundWin);
 
-  Future<void> playRoundWin(UiSoundsCosmetic cosmetic) =>
-      _play(_win, cosmetic.roundWinSound);
+  Future<void> playMatchWin(SoundPack pack) =>
+      _playSfx(_win, pack.matchWin);
 
-  Future<void> playMatchWin(UiSoundsCosmetic cosmetic) =>
-      _play(_win, cosmetic.matchWinSound);
+  // ── Volume ────────────────────────────────────────────────────────────────
 
-  // ── Internal ──────────────────────────────────────────────────────────────
+  void _applyVolume(AudioSettings settings) {
+    _masterVol = settings.masterVolume;
+    _sfxVol    = settings.sfxVolume;
+    // Pre-set volumes on all players so the next play() call uses them.
+    final effective = (_masterVol * _sfxVol).clamp(0.0, 1.0);
+    for (final p in [_move, _capture, _ui, _win]) {
+      p.setVolume(effective);
+    }
+  }
 
-  Future<void> _play(AudioPlayer player, String? assetPath) async {
-    if (assetPath == null) return; // placeholder / silence
+  // ── Internal ─────────────────────────────────────────────────────────────
+
+  Future<void> _playSfx(AudioPlayer player, String? assetPath) async {
+    if (assetPath == null) return;
     await player.play(AssetSource(assetPath));
   }
 

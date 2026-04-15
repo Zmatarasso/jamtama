@@ -5,7 +5,7 @@ import 'board_cosmetic.dart';
 import 'scenery_cosmetic.dart';
 import 'card_back_cosmetic.dart';
 import 'move_effect_cosmetic.dart';
-import 'ui_sounds_cosmetic.dart';
+import 'sound_pack.dart';
 
 /// The full set of independently-equippable cosmetic slots for one player
 /// session. Each slot can be swapped without affecting the others — this is
@@ -19,8 +19,8 @@ class CosmeticLoadout {
   final CardBackCosmetic cardBack;
   final MoveEffectCosmetic moveEffect;
 
-  /// UI interaction sounds (card select, piece select, draft flip, win fanfares).
-  final UiSoundsCosmetic uiSounds;
+  /// All game sounds — swap to replace every sound at once.
+  final SoundPack soundPack;
 
   const CosmeticLoadout({
     required this.masterPiece,
@@ -30,7 +30,7 @@ class CosmeticLoadout {
     required this.scenery,
     required this.cardBack,
     required this.moveEffect,
-    required this.uiSounds,
+    required this.soundPack,
   });
 
   CosmeticLoadout copyWith({
@@ -41,7 +41,7 @@ class CosmeticLoadout {
     SceneryCosmetic? scenery,
     CardBackCosmetic? cardBack,
     MoveEffectCosmetic? moveEffect,
-    UiSoundsCosmetic? uiSounds,
+    SoundPack? soundPack,
   }) =>
       CosmeticLoadout(
         masterPiece: masterPiece ?? this.masterPiece,
@@ -51,6 +51,6 @@ class CosmeticLoadout {
         scenery: scenery ?? this.scenery,
         cardBack: cardBack ?? this.cardBack,
         moveEffect: moveEffect ?? this.moveEffect,
-        uiSounds: uiSounds ?? this.uiSounds,
+        soundPack: soundPack ?? this.soundPack,
       );
 }

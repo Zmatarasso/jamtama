@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/card.dart';
 import '../models/piece.dart';
-import '../models/saved_deck.dart';
+import '../models/saved_deck.dart' show SavedDeck, DeckValidation;
 import '../providers/deck_builder_provider.dart';
 import '../providers/match_provider.dart';
 import '../widgets/card_widget.dart';
@@ -31,7 +31,8 @@ class DeckSelectionScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final match = ref.watch(matchProvider);
     final decks = ref.watch(deckBuilderProvider).decks;
-    final fullDecks = decks.where((d) => d.isFull).toList();
+    // Show all decks; invalid ones are visually flagged and non-selectable.
+    final validatedDecks = decks.map((d) => (deck: d, validation: d.validate())).toList();
 
     final canBegin =
         match.redDeckId != null && match.blueDeckId != null;
@@ -60,8 +61,8 @@ class DeckSelectionScreen extends ConsumerWidget {
       body: Column(
         children: [
           Expanded(
-            child: fullDecks.isEmpty
-                ? _EmptyState()
+            child: validatedDecks.isEmpty
+                ? const _EmptyState()
                 : Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -71,7 +72,7 @@ class DeckSelectionScreen extends ConsumerWidget {
                           player: Player.red,
                           label: 'Player 1',
                           accentColor: _red,
-                          decks: fullDecks,
+                          validatedDecks: validatedDecks,
                           selectedDeckId: match.redDeckId,
                           onSelect: (deck) => ref
                               .read(matchProvider.notifier)
@@ -85,7 +86,7 @@ class DeckSelectionScreen extends ConsumerWidget {
                           player: Player.blue,
                           label: 'Player 2',
                           accentColor: _blue,
-                          decks: fullDecks,
+                          validatedDecks: validatedDecks,
                           selectedDeckId: match.blueDeckId,
                           onSelect: (deck) => ref
                               .read(matchProvider.notifier)
@@ -112,11 +113,13 @@ class DeckSelectionScreen extends ConsumerWidget {
 // Per-player deck selection panel
 // ---------------------------------------------------------------------------
 
+typedef _ValidatedDeck = ({SavedDeck deck, DeckValidation validation});
+
 class _PlayerDeckPanel extends StatelessWidget {
   final Player player;
   final String label;
   final Color accentColor;
-  final List<SavedDeck> decks;
+  final List<_ValidatedDeck> validatedDecks;
   final String? selectedDeckId;
   final void Function(SavedDeck) onSelect;
 
@@ -124,7 +127,7 @@ class _PlayerDeckPanel extends StatelessWidget {
     required this.player,
     required this.label,
     required this.accentColor,
-    required this.decks,
+    required this.validatedDecks,
     required this.selectedDeckId,
     required this.onSelect,
   });
@@ -179,19 +182,25 @@ class _PlayerDeckPanel extends StatelessWidget {
         ),
         const Divider(height: 1, color: _surfaceLight),
 
-        // Deck list
+        // Deck list — all decks shown; invalid ones are grayed and non-selectable.
         Expanded(
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: decks.length,
+            itemCount: validatedDecks.length,
             separatorBuilder: (_, __) =>
                 const Divider(height: 1, indent: 16, color: _surfaceLight),
-            itemBuilder: (context, i) => _DeckTile(
-              deck: decks[i],
-              accentColor: accentColor,
-              isSelected: decks[i].id == selectedDeckId,
-              onSelect: () => onSelect(decks[i]),
-            ),
+            itemBuilder: (context, i) {
+              final entry = validatedDecks[i];
+              return _DeckTile(
+                deck: entry.deck,
+                validation: entry.validation,
+                accentColor: accentColor,
+                isSelected: entry.deck.id == selectedDeckId,
+                onSelect: entry.validation.isValid
+                    ? () => onSelect(entry.deck)
+                    : null, // invalid decks are not selectable
+              );
+            },
           ),
         ),
       ],
@@ -205,12 +214,16 @@ class _PlayerDeckPanel extends StatelessWidget {
 
 class _DeckTile extends StatefulWidget {
   final SavedDeck deck;
+  final DeckValidation validation;
   final Color accentColor;
   final bool isSelected;
-  final VoidCallback onSelect;
+
+  /// Null when the deck is invalid — tile is shown but cannot be selected.
+  final VoidCallback? onSelect;
 
   const _DeckTile({
     required this.deck,
+    required this.validation,
     required this.accentColor,
     required this.isSelected,
     required this.onSelect,
@@ -234,8 +247,11 @@ class _DeckTileState extends State<_DeckTile> {
 
   @override
   Widget build(BuildContext context) {
-    final cards =
-        widget.deck.slots.whereType<CardDefinition>().toList();
+    final cards = widget.deck.slots.whereType<CardDefinition>().toList();
+    final valid = widget.validation.isValid;
+    final nameColor = valid
+        ? (widget.isSelected ? _textPrimary : _textSecondary)
+        : _textSecondary.withAlpha(100);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 150),
@@ -245,18 +261,19 @@ class _DeckTileState extends State<_DeckTile> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Row: select radio + name + expand toggle
+          // Row: select radio + name + badges + expand toggle
           InkWell(
-            onTap: () {
-              widget.onSelect();
-              setState(() => _expanded = !_expanded);
-            },
+            onTap: widget.onSelect != null
+                ? () {
+                    widget.onSelect!();
+                    setState(() => _expanded = !_expanded);
+                  }
+                : () => setState(() => _expanded = !_expanded),
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
-                  // Selection indicator
+                  // Selection indicator — lock icon when invalid
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
                     width: 16,
@@ -267,25 +284,27 @@ class _DeckTileState extends State<_DeckTile> {
                           ? widget.accentColor
                           : Colors.transparent,
                       border: Border.all(
-                        color: widget.isSelected
-                            ? widget.accentColor
-                            : _textSecondary.withAlpha(100),
+                        color: valid
+                            ? (widget.isSelected
+                                ? widget.accentColor
+                                : _textSecondary.withAlpha(100))
+                            : Colors.red.withAlpha(120),
                         width: 2,
                       ),
                     ),
                     child: widget.isSelected
-                        ? const Icon(Icons.check,
-                            size: 10, color: Colors.white)
-                        : null,
+                        ? const Icon(Icons.check, size: 10, color: Colors.white)
+                        : (!valid
+                            ? const Icon(Icons.lock_outline,
+                                size: 9, color: Colors.red)
+                            : null),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       widget.deck.name,
                       style: TextStyle(
-                        color: widget.isSelected
-                            ? _textPrimary
-                            : _textSecondary,
+                        color: nameColor,
                         fontSize: 14,
                         fontWeight: widget.isSelected
                             ? FontWeight.bold
@@ -293,25 +312,25 @@ class _DeckTileState extends State<_DeckTile> {
                       ),
                     ),
                   ),
-                  // Card count badge
+                  // Card count badge — red when incomplete
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
-                      color: _surfaceLight,
+                      color: valid ? _surfaceLight : Colors.red.withAlpha(40),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       '${widget.deck.cardCount}/6',
-                      style: const TextStyle(
-                          fontSize: 11, color: _textSecondary),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: valid ? _textSecondary : Colors.red,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Icon(
-                    _expanded
-                        ? Icons.expand_less
-                        : Icons.expand_more,
+                    _expanded ? Icons.expand_less : Icons.expand_more,
                     size: 16,
                     color: _textSecondary,
                   ),
@@ -319,6 +338,34 @@ class _DeckTileState extends State<_DeckTile> {
               ),
             ),
           ),
+
+          // Validation errors — shown when expanded and invalid
+          if (_expanded && !valid)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(44, 0, 16, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: widget.validation.errors
+                    .map((e) => Padding(
+                          padding: const EdgeInsets.only(bottom: 2),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline,
+                                  size: 11, color: Colors.red),
+                              const SizedBox(width: 4),
+                              Text(
+                                e,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.red,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ))
+                    .toList(),
+              ),
+            ),
 
           // Card preview (3x2 grid)
           AnimatedCrossFade(
@@ -397,6 +444,7 @@ class _BottomBar extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _EmptyState extends StatelessWidget {
+  const _EmptyState();
   @override
   Widget build(BuildContext context) {
     return Center(

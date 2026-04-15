@@ -23,9 +23,7 @@ class MoveEffectCosmetic {
   final String? trailAnimationAsset;
   final String? landingAnimationAsset;
 
-  // Sound assets
-  final String? moveSoundAsset;
-  final String? captureSoundAsset;
+  // Sounds are handled by SoundPack — not stored here.
 
   const MoveEffectCosmetic({
     required this.id,
@@ -33,7 +31,5 @@ class MoveEffectCosmetic {
     required this.type,
     this.trailAnimationAsset,
     this.landingAnimationAsset,
-    this.moveSoundAsset,
-    this.captureSoundAsset,
   });
 }
