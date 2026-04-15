@@ -5,11 +5,13 @@ import 'cosmetics/providers/cosmetic_loadout_provider.dart';
 import 'models/match_state.dart';
 import 'models/round_state.dart';
 import 'providers/match_provider.dart';
+import 'providers/wallet_provider.dart';
 import 'screens/card_draft_screen.dart';
 import 'screens/deck_selection_screen.dart';
 import 'screens/game_screen.dart';
 import 'screens/menu_screen.dart';
 import 'services/audio_service.dart';
+import 'widgets/tutorial_overlay.dart';
 
 class JamtamaApp extends StatelessWidget {
   const JamtamaApp({super.key});
@@ -35,7 +37,8 @@ class _RootRouter extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final match = ref.watch(matchProvider);
 
-    // Play win fanfare exactly once when a round/match ends.
+    // Single listener handles both audio and coin rewards — fires
+    // exactly once per round-over transition.
     ref.listen(matchProvider, (prev, next) {
       final wasOver = prev?.round?.phase == RoundPhase.over;
       final isNowOver = next.round?.phase == RoundPhase.over;
@@ -44,6 +47,10 @@ class _RootRouter extends ConsumerWidget {
         final sounds = ref.read(cosmeticLoadoutProvider).uiSounds;
         if (next.phase == MatchPhase.matchOver) {
           audio.playMatchWin(sounds);
+          // Award coins — local match: both sides are the same player,
+          // so give win + loss reward for completing the match.
+          final wallet = ref.read(walletProvider.notifier);
+          wallet.earn(matchWinReward + matchLossReward);
         } else {
           audio.playRoundWin(sounds);
         }
@@ -84,7 +91,7 @@ class _RootRouter extends ConsumerWidget {
       }
     });
 
-    return switch (match.phase) {
+    final screen = switch (match.phase) {
       MatchPhase.menu => const MenuScreen(),
       MatchPhase.deckSelection => const DeckSelectionScreen(),
       MatchPhase.draftingRed ||
@@ -92,5 +99,7 @@ class _RootRouter extends ConsumerWidget {
         const CardDraftScreen(),
       MatchPhase.playing || MatchPhase.matchOver => const GameScreen(),
     };
+
+    return TutorialOverlay(child: screen);
   }
 }

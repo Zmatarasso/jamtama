@@ -2,14 +2,55 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/match_provider.dart';
+import '../providers/tutorial_provider.dart';
+import '../providers/wallet_provider.dart';
 import 'collection_screen.dart';
 import 'options_screen.dart';
+import 'shop_screen.dart';
 
-class MenuScreen extends ConsumerWidget {
+class MenuScreen extends ConsumerStatefulWidget {
   const MenuScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MenuScreen> createState() => _MenuScreenState();
+}
+
+class _MenuScreenState extends ConsumerState<MenuScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      // Auto-start the tutorial the very first time the menu is shown.
+      final tutorialNotifier = ref.read(tutorialProvider.notifier);
+      if (!tutorialNotifier.isDone) {
+        tutorialNotifier.start();
+        return; // skip daily bonus snackbar during tutorial
+      }
+
+      // Daily login bonus — only shown if tutorial is already done.
+      final claimed = ref.read(dailyLoginProvider.notifier).claim();
+      if (claimed && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.monetization_on, color: Color(0xFFFFD700), size: 20),
+                const SizedBox(width: 8),
+                Text('Daily login bonus: +$dailyLoginBonus coins!'),
+              ],
+            ),
+            backgroundColor: const Color(0xFF3A2010),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1A0F08),
       body: SafeArea(
@@ -30,14 +71,18 @@ class MenuScreen extends ConsumerWidget {
                     label: 'Find a Match',
                     icon: Icons.search,
                     onTap: () {
-                      // TODO: matchmaking
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Matchmaking coming soon'),
-                          duration: Duration(seconds: 2),
-                          backgroundColor: Color(0xFF3A2010),
-                        ),
-                      );
+                      final notifier = ref.read(tutorialProvider.notifier);
+                      if (!notifier.isDone) {
+                        notifier.start();
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Matchmaking coming soon'),
+                            duration: Duration(seconds: 2),
+                            backgroundColor: Color(0xFF3A2010),
+                          ),
+                        );
+                      }
                     },
                   ),
                   const SizedBox(height: 14),
@@ -54,6 +99,16 @@ class MenuScreen extends ConsumerWidget {
                     icon: Icons.science_outlined,
                     onTap: () =>
                         ref.read(matchProvider.notifier).startTestMatch(),
+                  ),
+                  const SizedBox(height: 14),
+                  _MenuButton(
+                    label: 'Shop',
+                    icon: Icons.storefront,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const ShopScreen(),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 14),
                   _MenuButton(
