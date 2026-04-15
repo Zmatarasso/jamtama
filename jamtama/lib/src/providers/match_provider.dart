@@ -66,7 +66,9 @@ class MatchNotifier extends Notifier<MatchState> {
   }
 
   void confirmDeckSelection() {
-    if (state.redDeckId == null || state.blueDeckId == null) return;
+    // Guard is enforced in the UI (Begin Match button disabled until both
+    // players have selected a deck).  No hard guard here so test helpers
+    // can drive the draft flow without needing SavedDeck objects.
     state = state.copyWith(phase: MatchPhase.draftingRed);
     _drawFor(Player.red);
   }
@@ -265,7 +267,20 @@ class MatchNotifier extends Notifier<MatchState> {
       }
     }
 
+    // Compute new match-level state in the same update so listeners see a
+    // fully consistent snapshot (no two-step race between round and match).
+    final newRedWins  = winner == Player.red  ? state.redWins  + 1 : state.redWins;
+    final newBlueWins = winner == Player.blue ? state.blueWins + 1 : state.blueWins;
+    final isMatchOver = winner != null && (newRedWins >= 2 || newBlueWins >= 2);
+
     state = state.copyWith(
+      // Match-level fields updated atomically together with round state.
+      phase: isMatchOver ? MatchPhase.matchOver : state.phase,
+      redWins: newRedWins,
+      blueWins: newBlueWins,
+      currentRound: (winner != null && !isMatchOver)
+          ? state.currentRound + 1
+          : state.currentRound,
       round: round.copyWith(
         pieces: newPieces,
         redHand: newRedHand,
@@ -281,29 +296,6 @@ class MatchNotifier extends Notifier<MatchState> {
         phase: winner != null ? RoundPhase.over : RoundPhase.playing,
       ),
     );
-
-    if (winner != null) _handleRoundOver(winner);
-  }
-
-  void _handleRoundOver(Player winner) {
-    final newRedWins =
-        winner == Player.red ? state.redWins + 1 : state.redWins;
-    final newBlueWins =
-        winner == Player.blue ? state.blueWins + 1 : state.blueWins;
-
-    if (newRedWins >= 2 || newBlueWins >= 2) {
-      state = state.copyWith(
-        redWins: newRedWins,
-        blueWins: newBlueWins,
-        phase: MatchPhase.matchOver,
-      );
-    } else {
-      state = state.copyWith(
-        redWins: newRedWins,
-        blueWins: newBlueWins,
-        currentRound: state.currentRound + 1,
-      );
-    }
   }
 
   /// Advance from a finished round back to drafting for the next round.

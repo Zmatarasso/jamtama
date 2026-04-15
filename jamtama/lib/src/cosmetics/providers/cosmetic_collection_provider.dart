@@ -1,19 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/sound_packs.dart';
 import '../defaults/default_cosmetics.dart';
 import '../models/board_cosmetic.dart';
 import '../models/card_back_cosmetic.dart';
 import '../models/master_piece_cosmetic.dart';
 import '../models/move_effect_cosmetic.dart';
 import '../models/scenery_cosmetic.dart';
+import '../models/sound_pack.dart';
 import '../models/student_piece_cosmetic.dart';
 import '../models/throne_cosmetic.dart';
-import '../models/ui_sounds_cosmetic.dart';
 
 /// Everything the player currently owns, indexed by slot type.
 ///
-/// For now each slot only contains the built-in default. When unlock / purchase
-/// mechanics are added, make this a [NotifierProvider] and append items.
+/// For now each slot only contains the built-in defaults. When unlock /
+/// purchase mechanics are added, make this a [NotifierProvider] and append
+/// items to the appropriate list.
 class CosmeticCollection {
   final List<MasterPieceCosmetic> masterPieces;
   final List<StudentPieceCosmetic> studentPieces;
@@ -22,7 +24,7 @@ class CosmeticCollection {
   final List<SceneryCosmetic> sceneries;
   final List<CardBackCosmetic> cardBacks;
   final List<MoveEffectCosmetic> moveEffects;
-  final List<UiSoundsCosmetic> uiSoundSets;
+  final List<SoundPack> soundPacks;
 
   const CosmeticCollection({
     required this.masterPieces,
@@ -32,7 +34,7 @@ class CosmeticCollection {
     required this.sceneries,
     required this.cardBacks,
     required this.moveEffects,
-    required this.uiSoundSets,
+    required this.soundPacks,
   });
 }
 
@@ -45,6 +47,6 @@ final cosmeticCollectionProvider = Provider<CosmeticCollection>((_) {
     sceneries: [defaultScenery],
     cardBacks: [defaultCardBack],
     moveEffects: [defaultMoveEffect, glitterMoveEffect],
-    uiSoundSets: [defaultUiSounds],
+    soundPacks: allSoundPacks,
   );
 });

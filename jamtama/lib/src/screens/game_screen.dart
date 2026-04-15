@@ -27,13 +27,11 @@ class GameScreen extends ConsumerStatefulWidget {
 
 class _GameScreenState extends ConsumerState<GameScreen> {
   // ── Debug layout knobs ──────────────────────────────────────────────────
-  double _boardScale    = 0.90; // fraction of min(w,h) the board occupies
-  double _boardLeft     = 12.0; // px from left edge
-  double _cardScale     = 1.0;  // fan hand card scale (1.0 = native 76×100)
-  double _tableCardW    = 76.0; // table card display width (px)
-  double _floatCardW    = 90.0; // floating selected card display width (px)
-  double _rightPanelW   = 110.0; // right panel fixed width (px)
-  bool   _debugOpen     = true;
+  double _boardScale  = 0.95; // fraction of min(w,h) the board occupies
+  double _boardLeft   = 12.0; // px from left edge
+  double _cardScale   = 1.8;  // fan hand card scale (1.0 = native 76×100)
+  double _stripCardW  = 112.0; // card strip card width (px); height locked to w×100/76
+  bool   _debugOpen   = true;
 
   @override
   Widget build(BuildContext context) {
@@ -43,9 +41,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
     final board   = ref.watch(cosmeticLoadoutProvider.select((l) => l.board));
     final scenery = ref.watch(cosmeticLoadoutProvider.select((l) => l.scenery));
-
-    // Derived float-card dimensions (aspect ratio always locked).
-    final floatCardH = _floatCardW * 100.0 / 76.0;
 
     return Scaffold(
       backgroundColor: scenery.backgroundColor,
@@ -62,75 +57,31 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   Column(
                     children: [
                       _ScoreBar(match: match),
+
+                      // Board area — hands overlay from top and bottom edges.
                       Expanded(
                         child: Stack(
                           children: [
-                            // Board + right panel
+                            // Board — left-pinned, top-aligned (up against Blue's area).
                             LayoutBuilder(
                               builder: (context, constraints) {
                                 final boardSize =
                                     (min(constraints.maxWidth, constraints.maxHeight) - 16.0)
                                     * _boardScale;
-
-                                const rightPanelRight = 6.0;
-                                final rightPanelLeft =
-                                    constraints.maxWidth - rightPanelRight - _rightPanelW;
-
-                                final floatX = rightPanelLeft +
-                                    (_rightPanelW - _floatCardW) / 2.0;
-                                final floatY =
-                                    (constraints.maxHeight - floatCardH) / 2.0;
-
-                                return Stack(
-                                  children: [
-                                    // Board
-                                    Positioned(
-                                      left: _boardLeft,
-                                      top: 0,
-                                      bottom: 0,
-                                      width: boardSize,
-                                      child: Center(
-                                        child: AspectRatio(
-                                          aspectRatio: 1,
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(8),
-                                            child: _Board(round: round, board: board),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    // Table card
-                                    Positioned(
-                                      right: rightPanelRight,
-                                      width: _rightPanelW,
-                                      top: 0,
-                                      bottom: 0,
-                                      child: Center(
-                                        child: _TableCard(
-                                          card: round.communityCard,
-                                          currentTurn: round.currentTurn,
-                                          displayW: _tableCardW,
-                                        ),
-                                      ),
-                                    ),
-                                    // Floating selected card
-                                    if (round.pendingCard != null)
-                                      AnimatedPositioned(
-                                        duration: const Duration(milliseconds: 320),
-                                        curve: Curves.easeOutBack,
-                                        left: floatX,
-                                        top: floatY,
-                                        child: _FloatingCard(
-                                          card: round.pendingCard!,
-                                          displayW: _floatCardW,
-                                        ),
-                                      ),
-                                  ],
+                                return Positioned(
+                                  left: _boardLeft,
+                                  top: 0,
+                                  width: boardSize,
+                                  height: boardSize,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8),
+                                    child: _Board(round: round, board: board),
+                                  ),
                                 );
                               },
                             ),
 
-                            // Blue's hand
+                            // Blue's hand overlaid at top.
                             Positioned(
                               top: 0, left: 0, right: 0,
                               child: RotatedBox(
@@ -145,7 +96,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                               ),
                             ),
 
-                            // Red's hand
+                            // Red's hand overlaid at bottom.
                             Positioned(
                               bottom: 0, left: 0, right: 0,
                               child: _PlayerArea(
@@ -159,6 +110,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                           ],
                         ),
                       ),
+
+                      // Card strip — sits BELOW the board, ABOVE Red's hand overlay.
+                      // Completely independent of board sizing.
+                      _CardStrip(round: round, cardW: _stripCardW),
                     ],
                   ),
 
@@ -173,12 +128,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                           (v) => setState(() => _boardLeft = v)),
                       _DebugSlider('Card scale', _cardScale, 0.5, 3.0,
                           (v) => setState(() => _cardScale = v)),
-                      _DebugSlider('Table card W', _tableCardW, 40, 160,
-                          (v) => setState(() => _tableCardW = v)),
-                      _DebugSlider('Float card W', _floatCardW, 40, 160,
-                          (v) => setState(() => _floatCardW = v)),
-                      _DebugSlider('Right panel W', _rightPanelW, 60, 200,
-                          (v) => setState(() => _rightPanelW = v)),
+                      _DebugSlider('Strip card W', _stripCardW, 40, 160,
+                          (v) => setState(() => _stripCardW = v)),
                     ],
                   ),
                 ],
@@ -415,7 +366,7 @@ class _PlayerArea extends ConsumerWidget {
                 scale: cardScale,
                 onCardTap: (card) {
                   ref.read(audioServiceProvider).playCardSelect(
-                      ref.read(cosmeticLoadoutProvider).uiSounds);
+                      ref.read(cosmeticLoadoutProvider).soundPack);
                   ref.read(matchProvider.notifier).selectCard(card);
                 },
               ),
@@ -562,13 +513,13 @@ class _CellState extends ConsumerState<_Cell>
         final isCapture = targetPiece != null &&
             targetPiece.player != liveRound?.currentTurn;
         final audio = ref.read(audioServiceProvider);
-        final moveCosmetic = ref.read(cosmeticLoadoutProvider).moveEffect;
+        final loadout = ref.read(cosmeticLoadoutProvider);
         if (isCapture) {
-          audio.playCapture(moveCosmetic);
+          audio.playCapture(loadout.soundPack);
         } else {
-          audio.playMove(moveCosmetic);
+          audio.playMove(loadout.soundPack);
         }
-        if (moveCosmetic.type == MoveEffectType.glitter) _triggerGlitter();
+        if (loadout.moveEffect.type == MoveEffectType.glitter) _triggerGlitter();
         ref
             .read(matchProvider.notifier)
             .executeMove(row: widget.row, col: widget.col);
@@ -695,7 +646,7 @@ class _CellState extends ConsumerState<_Cell>
         final round = ref.read(matchProvider).round;
         if (round?.selectedPiece != piece) {
           ref.read(audioServiceProvider).playPieceSelect(
-              ref.read(cosmeticLoadoutProvider).uiSounds);
+              ref.read(cosmeticLoadoutProvider).soundPack);
           ref.read(matchProvider.notifier).selectPiece(piece);
         }
       },
@@ -707,7 +658,7 @@ class _CellState extends ConsumerState<_Cell>
       child: GestureDetector(
         onTap: () {
           ref.read(audioServiceProvider).playPieceSelect(
-              ref.read(cosmeticLoadoutProvider).uiSounds);
+              ref.read(cosmeticLoadoutProvider).soundPack);
           ref.read(matchProvider.notifier).selectPiece(piece);
         },
         child: pieceWidget,
@@ -1702,8 +1653,13 @@ class _HandCardState extends State<_HandCard> {
 
   @override
   Widget build(BuildContext context) {
-    final liftPx = widget.isPending ? 22.0 : (_hovering ? 16.0 : 0.0);
-    final opacity = widget.isPending ? 0.35 : 1.0;
+    // isPending: card is "leaving" the hand toward the strip below — slide DOWN.
+    // hover:     card lifts UP to be readable.
+    final translateY = widget.isPending ? 20.0 : (_hovering ? -16.0 : 0.0);
+    final opacity    = widget.isPending ? 0.15 : 1.0;
+    final duration   = widget.isPending
+        ? const Duration(milliseconds: 260)
+        : const Duration(milliseconds: 120);
 
     return MouseRegion(
       cursor: widget.onTap != null
@@ -1714,11 +1670,11 @@ class _HandCardState extends State<_HandCard> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 150),
+          duration: duration,
           opacity: opacity,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-            transform: Matrix4.translationValues(0, -liftPx, 0),
+            duration: duration,
+            transform: Matrix4.translationValues(0, translateY, 0),
             child: Transform.scale(
               scale: widget.scale,
               alignment: Alignment.bottomCenter,
@@ -1735,132 +1691,163 @@ class _HandCardState extends State<_HandCard> {
   }
 }
 
+
 // ---------------------------------------------------------------------------
-// Floating card — bobbing selected card shown in the board gutter
+// Card strip — sits between board and Red's hand in the Column.
+//
+// LEFT slot  — Red's played/pending card   (enters from below, exits toward top)
+// RIGHT slot — community / Blue's pending  (enters from above, exits toward bottom)
+//
+// Animation logic: AnimatedSwitcher's transitionBuilder closure captures
+// `currentKey` (derived from the CURRENT widget.card).  When transitionBuilder
+// is called for a child, comparing child.key == currentKey tells us whether
+// that child is the incoming card (same key) or the outgoing one (old key),
+// which lets us apply different enter vs exit slide directions independently.
 // ---------------------------------------------------------------------------
 
-class _FloatingCard extends StatefulWidget {
-  final CardDefinition card;
-  final double displayW;
+class _CardStrip extends StatelessWidget {
+  final RoundState round;
+  final double cardW;
 
-  const _FloatingCard({required this.card, required this.displayW});
-
-  // Aspect ratio always locked at 76:100 (CardWidget native ratio).
-  double get displayH => displayW * 100.0 / 76.0;
-
-  @override
-  State<_FloatingCard> createState() => _FloatingCardState();
-}
-
-class _FloatingCardState extends State<_FloatingCard>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _bob;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2200),
-    )..repeat(reverse: true);
-    _bob = CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut);
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
+  const _CardStrip({required this.round, required this.cardW});
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _bob,
-      builder: (context, child) => Transform.translate(
-        offset: Offset(0, -6.0 + _bob.value * 12.0),
-        child: child,
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.amber.withAlpha(130),
-              blurRadius: 18,
-              spreadRadius: 3,
-            ),
-          ],
-        ),
-        // SizedBox locks the aspect ratio; FittedBox scales CardWidget to fill it.
-        child: SizedBox(
-          width: widget.displayW,
-          height: widget.displayH,   // locked: displayW * 100/76
-          child: FittedBox(
-            fit: BoxFit.contain,
-            child: CardWidget(card: widget.card, selected: true),
+    final isRedTurn = round.currentTurn == Player.red;
+    final pending   = round.pendingCard;
+    final community = round.communityCard;
+
+    // Community card swaps sides based on whose turn it is:
+    //   Red's turn  → RIGHT (Red receives it after playing)
+    //   Blue's turn → LEFT  (Blue receives it after playing)
+    final leftCard  = isRedTurn ? pending   : (community as CardDefinition?);
+    final rightCard = isRedTurn ? community : pending;
+    final leftLabel  = isRedTurn ? 'YOUR PLAY' : 'TABLE';
+    final rightLabel = isRedTurn ? 'TABLE'     : 'OPP PLAY';
+
+    return Container(
+      color: const Color(0xFF0A0604),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // LEFT — enter from below (Red's hand), exit toward above (Blue's hand)
+          _StripSlot(
+            card: leftCard,
+            label: leftLabel,
+            cardW: cardW,
+            entryDy: 1.0,
+            exitDy: -1.0,
           ),
-        ),
+          // RIGHT — enter from above (Blue's hand), exit toward below (Red's hand)
+          _StripSlot(
+            card: rightCard,
+            label: rightLabel,
+            cardW: cardW,
+            entryDy: -1.0,
+            exitDy: 1.0,
+          ),
+        ],
       ),
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// Table card — community card shown in right scenery area with turn arrows
-// ---------------------------------------------------------------------------
+class _StripSlot extends StatelessWidget {
+  final CardDefinition? card;
+  final String label;
+  final double cardW;
 
-class _TableCard extends StatelessWidget {
-  final CardDefinition card;
-  final Player currentTurn;
+  /// Fractional Y offset the card starts at when entering (+1 = from below, -1 = from above).
+  final double entryDy;
 
-  final double displayW;
+  /// Fractional Y offset the card ends at when exiting (+1 = toward below, -1 = toward above).
+  final double exitDy;
 
-  const _TableCard({
+  const _StripSlot({
     required this.card,
-    required this.currentTurn,
-    required this.displayW,
+    required this.label,
+    required this.cardW,
+    required this.entryDy,
+    required this.exitDy,
   });
 
-  // Aspect ratio always locked at 76:100 (CardWidget native ratio).
-  double get displayH => displayW * 100.0 / 76.0;
+  double get _cardH => cardW * 100.0 / 76.0;
 
   @override
   Widget build(BuildContext context) {
-    const blueColor = Color(0xFF4169E1);
-    const redColor = Color(0xFFDC143C);
-
-    final blueActive = currentTurn == Player.blue;
-    final redActive = currentTurn == Player.red;
+    // Recomputed every build — captured by transitionBuilder closure below.
+    final currentKey = ValueKey(card?.id ?? 'empty_$label');
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Up arrow — Blue is at the top of the board
-        Icon(
-          Icons.keyboard_arrow_up_rounded,
-          size: 28,
-          color: blueActive ? blueColor : Colors.white24,
+        Text(
+          label,
+          style: const TextStyle(
+              color: Colors.white38, fontSize: 9, letterSpacing: 1.2),
         ),
-        // SizedBox locks the aspect ratio; FittedBox scales CardWidget to fill it.
+        const SizedBox(height: 4),
         SizedBox(
-          width: displayW,
-          height: displayH,    // locked: displayW * 100/76
-          child: FittedBox(
-            fit: BoxFit.contain,
-            child: CardWidget(card: card, dimmed: true),
+          width: cardW,
+          height: _cardH,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 380),
+            switchInCurve:  Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            // Overlay old and new cards on top of each other during transition.
+            layoutBuilder: (currentChild, previousChildren) => Stack(
+              alignment: Alignment.center,
+              children: [...previousChildren, if (currentChild != null) currentChild],
+            ),
+            transitionBuilder: (child, animation) {
+              // child.key == currentKey  →  this is the INCOMING card (anim 0→1)
+              // child.key != currentKey  →  this is the OUTGOING card (anim 1→0)
+              //
+              // For both cases we use the same Tween shape:
+              //   begin offset → end = Offset.zero
+              // The correct begin offset differs:
+              //   incoming → entryDy  (start off-screen in entry direction)
+              //   outgoing → exitDy   (since anim plays 1→0, begin is where it ends up)
+              final isIncoming = child.key == currentKey;
+              final beginDy    = isIncoming ? entryDy : exitDy;
+
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: Offset(0, beginDy),
+                  end:   Offset.zero,
+                ).animate(animation),
+                child: FadeTransition(opacity: animation, child: child),
+              );
+            },
+            child: card != null
+                ? SizedBox(
+                    key: currentKey,
+                    width: cardW,
+                    height: _cardH,
+                    child: FittedBox(
+                      fit: BoxFit.contain,
+                      child: CardWidget(card: card!),
+                    ),
+                  )
+                : SizedBox(
+                    key: currentKey,
+                    width: cardW,
+                    height: _cardH,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.white12, width: 1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
           ),
-        ),
-        // Down arrow — Red is at the bottom of the board
-        Icon(
-          Icons.keyboard_arrow_down_rounded,
-          size: 28,
-          color: redActive ? redColor : Colors.white24,
         ),
       ],
     );
   }
 }
+
 
 // ---------------------------------------------------------------------------
 // Round-over dialog
