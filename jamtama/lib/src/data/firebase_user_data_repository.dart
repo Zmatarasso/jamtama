@@ -92,6 +92,18 @@ class FirebaseUserDataRepository implements UserDataRepository {
       if (displayName != null) {
         await local.saveDisplayName(displayName);
       }
+
+      // Unlocked cards
+      final cardIds = data['unlockedCardIds'];
+      if (cardIds is List) {
+        await local.saveUnlockedCardIds(Set<String>.from(cardIds));
+      }
+
+      // Unlocked cosmetics
+      final cosmeticIds = data['unlockedCosmeticIds'];
+      if (cosmeticIds is List) {
+        await local.saveUnlockedCosmeticIds(Set<String>.from(cosmeticIds));
+      }
     } catch (_) {
       // Offline or error — silently use local cache.
     }
@@ -191,5 +203,23 @@ class FirebaseUserDataRepository implements UserDataRepository {
     // Also update the Firebase Auth profile so it shows in the console.
     await _auth.currentUser?.updateDisplayName(name);
     _pushToCloud({'displayName': name});
+  }
+
+  @override
+  Set<String>? loadUnlockedCardIds() => local.loadUnlockedCardIds();
+
+  @override
+  Future<void> saveUnlockedCardIds(Set<String> ids) async {
+    await local.saveUnlockedCardIds(ids);
+    _pushToCloud({'unlockedCardIds': ids.toList()});
+  }
+
+  @override
+  Set<String>? loadUnlockedCosmeticIds() => local.loadUnlockedCosmeticIds();
+
+  @override
+  Future<void> saveUnlockedCosmeticIds(Set<String> ids) async {
+    await local.saveUnlockedCosmeticIds(ids);
+    _pushToCloud({'unlockedCosmeticIds': ids.toList()});
   }
 }
