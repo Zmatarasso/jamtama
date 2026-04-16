@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "376771509119",
+    "project_id": "royal-ruckus",
+    "storage_bucket": "royal-ruckus.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:376771509119:android:f548643cac3a19a24db84a",
+        "android_client_info": {
+          "package_name": "io.royalruckus.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAarQbY7k2jRDc2P4JJN-B3EHtvJ3RG2ys"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
