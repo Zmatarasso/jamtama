@@ -23,6 +23,7 @@ class SharedPrefsUserDataRepository implements UserDataRepository {
   static const _decksKey        = 'saved_decks_v1';
   static const _selectedDeckKey = 'selected_deck_id_v1';
   static const _tutorialDoneKey = 'tutorial_done_v1';
+  static const _displayNameKey  = 'display_name_v1';
 
   // ── Cosmetic loadout ───────────────────────────────────────────────────────
 
@@ -78,4 +79,13 @@ class SharedPrefsUserDataRepository implements UserDataRepository {
   @override
   Future<void> saveTutorialDone(bool done) =>
       _prefs.setBool(_tutorialDoneKey, done);
+
+  // ── Profile ────────────────────────────────────────────────────────────────
+
+  @override
+  String? loadDisplayName() => _prefs.getString(_displayNameKey);
+
+  @override
+  Future<void> saveDisplayName(String name) =>
+      _prefs.setString(_displayNameKey, name);
 }

@@ -86,6 +86,12 @@ class FirebaseUserDataRepository implements UserDataRepository {
       if (tutorialDone != null) {
         await local.saveTutorialDone(tutorialDone);
       }
+
+      // Display name
+      final displayName = data['displayName'] as String?;
+      if (displayName != null) {
+        await local.saveDisplayName(displayName);
+      }
     } catch (_) {
       // Offline or error — silently use local cache.
     }
@@ -134,6 +140,8 @@ class FirebaseUserDataRepository implements UserDataRepository {
   bool get isAnonymous => _auth.currentUser?.isAnonymous ?? true;
   String? get email => _auth.currentUser?.email;
 
+  Future<void> signOut() => _auth.signOut();
+
   // ── UserDataRepository ─────────────────────────────────────────────────────
 
   @override
@@ -172,5 +180,16 @@ class FirebaseUserDataRepository implements UserDataRepository {
   Future<void> saveTutorialDone(bool done) async {
     await local.saveTutorialDone(done);
     _pushToCloud({'tutorialDone': done});
+  }
+
+  @override
+  String? loadDisplayName() => local.loadDisplayName();
+
+  @override
+  Future<void> saveDisplayName(String name) async {
+    await local.saveDisplayName(name);
+    // Also update the Firebase Auth profile so it shows in the console.
+    await _auth.currentUser?.updateDisplayName(name);
+    _pushToCloud({'displayName': name});
   }
 }

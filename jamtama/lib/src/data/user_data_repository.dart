@@ -69,4 +69,11 @@ abstract class UserDataRepository {
   bool loadTutorialDone();
 
   Future<void> saveTutorialDone(bool done);
+
+  // ── Profile ────────────────────────────────────────────────────────────────
+
+  /// Returns the player's chosen display name, or null if not set.
+  String? loadDisplayName();
+
+  Future<void> saveDisplayName(String name);
 }
