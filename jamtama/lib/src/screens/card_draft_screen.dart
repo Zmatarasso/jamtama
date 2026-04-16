@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../animations/draft_animator.dart';
 import '../cosmetics/providers/cosmetic_loadout_provider.dart';
 import '../models/card.dart';
 import '../models/match_state.dart';
@@ -8,6 +9,17 @@ import '../models/piece.dart';
 import '../providers/match_provider.dart';
 import '../services/audio_service.dart';
 import '../widgets/card_widget.dart';
+
+// ---------------------------------------------------------------------------
+// Draft intro phases
+//
+//   shuffle → deal → ready
+//
+// Only the very first draft (round 1, red's turn) plays the intro.
+// All subsequent drafts skip straight to [ready].
+// ---------------------------------------------------------------------------
+
+enum _DraftIntroPhase { shuffle, deal, ready }
 
 class CardDraftScreen extends ConsumerStatefulWidget {
   const CardDraftScreen({super.key});
@@ -18,6 +30,18 @@ class CardDraftScreen extends ConsumerStatefulWidget {
 
 class _CardDraftScreenState extends ConsumerState<CardDraftScreen> {
   final Set<CardDefinition> _selected = {};
+  late _DraftIntroPhase _introPhase;
+
+  @override
+  void initState() {
+    super.initState();
+    final match = ref.read(matchProvider);
+    // Only play the shuffle + deal intro for the very first draft of the match.
+    final isFirstDraft =
+        match.currentRound == 1 && match.phase == MatchPhase.draftingRed;
+    _introPhase =
+        isFirstDraft ? _DraftIntroPhase.shuffle : _DraftIntroPhase.ready;
+  }
 
   void _toggle(CardDefinition card) {
     ref.read(audioServiceProvider).playCardDraft(
@@ -31,11 +55,31 @@ class _CardDraftScreenState extends ConsumerState<CardDraftScreen> {
     });
   }
 
+  /// Approximate screen-space centres for [count] draft cards.
+  ///
+  /// Cards are displayed in a centred [Row] at ~76 px wide with 16 px total
+  /// horizontal gap between them (8 px padding each side).  The vertical
+  /// position is estimated as 50 % of the available height (between the two
+  /// equal Spacers that bracket the card row).
+  ///
+  /// These positions are relative to the [Stack]'s origin (top-left of
+  /// SafeArea), so they match the coordinate space that [CardDealAnimator]
+  /// uses for its [Positioned] children.
+  List<Offset> _cardDestinations(Size available, int count) {
+    const cardW = 76.0;
+    const gap = 16.0;
+    final totalW = count * cardW + (count - 1) * gap;
+    final startX = (available.width - totalW) / 2 + cardW / 2;
+    final cardY = available.height * 0.50;
+    return List.generate(
+      count,
+      (i) => Offset(startX + i * (cardW + gap), cardY),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Clear selection whenever the draft phase changes (red → blue handoff or
-    // new round starts).  Using ref.listen here guarantees this fires even
-    // when the widget instance is reused by the router.
+    // Clear selection whenever the draft phase changes (red → blue or new round).
     ref.listen(
       matchProvider.select((m) => m.phase),
       (_, __) => setState(() => _selected.clear()),
@@ -55,103 +99,147 @@ class _CardDraftScreenState extends ConsumerState<CardDraftScreen> {
     final effectiveSelected = mustTakeAll ? drafted.toSet() : _selected;
     final canConfirm = mustTakeAll || _selected.length == 2;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF2B1810),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+    // ── Normal draft content ──────────────────────────────────────────────
+    final draftContent = Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: playerColor,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    playerLabel,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+              Container(
+                width: 14,
+                height: 14,
+                decoration: BoxDecoration(
+                  color: playerColor,
+                  shape: BoxShape.circle,
+                ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(width: 8),
               Text(
-                mustTakeAll
-                    ? 'Take both remaining cards'
-                    : 'Choose 2 cards for this round',
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white60, fontSize: 14),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Round ${match.currentRound} of 3',
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white38, fontSize: 12),
-              ),
-
-              const Spacer(),
-
-              // Card row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: drafted.map((card) {
-                  final isSelected = effectiveSelected.contains(card);
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: CardWidget(
-                      card: card,
-                      selected: isSelected,
-                      dimmed: !isSelected && effectiveSelected.length == 2,
-                      onTap: mustTakeAll ? null : () => _toggle(card),
-                    ),
-                  );
-                }).toList(),
-              ),
-
-              const Spacer(),
-
-              // Confirm button
-              AnimatedOpacity(
-                opacity: canConfirm ? 1.0 : 0.3,
-                duration: const Duration(milliseconds: 200),
-                child: ElevatedButton(
-                  onPressed: canConfirm
-                      ? () {
-                          ref
-                              .read(matchProvider.notifier)
-                              .confirmDraft(player, effectiveSelected.toList());
-                          if (!mustTakeAll) setState(() => _selected.clear());
-                        }
-                      : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF8B6914),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    textStyle: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: const Text('Confirm Selection'),
+                playerLabel,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          Text(
+            mustTakeAll
+                ? 'Take both remaining cards'
+                : 'Choose 2 cards for this round',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white60, fontSize: 14),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Round ${match.currentRound} of 3',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white38, fontSize: 12),
+          ),
+
+          const Spacer(),
+
+          // Card row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: drafted.map((card) {
+              final isSelected = effectiveSelected.contains(card);
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: CardWidget(
+                  card: card,
+                  selected: isSelected,
+                  dimmed: !isSelected && effectiveSelected.length == 2,
+                  onTap: mustTakeAll ? null : () => _toggle(card),
+                ),
+              );
+            }).toList(),
+          ),
+
+          const Spacer(),
+
+          // Confirm button
+          AnimatedOpacity(
+            opacity: canConfirm ? 1.0 : 0.3,
+            duration: const Duration(milliseconds: 200),
+            child: ElevatedButton(
+              onPressed: canConfirm
+                  ? () {
+                      ref
+                          .read(matchProvider.notifier)
+                          .confirmDraft(player, effectiveSelected.toList());
+                      if (!mustTakeAll) setState(() => _selected.clear());
+                    }
+                  : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF8B6914),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text('Confirm Selection'),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF2B1810),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final available =
+                Size(constraints.maxWidth, constraints.maxHeight);
+
+            return Stack(
+              children: [
+                // ── Draft content ─────────────────────────────────────────
+                // Always built so the layout is stable; hidden + non-interactive
+                // during the intro animations.
+                IgnorePointer(
+                  ignoring: _introPhase != _DraftIntroPhase.ready,
+                  child: AnimatedOpacity(
+                    opacity: _introPhase == _DraftIntroPhase.ready ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 300),
+                    child: draftContent,
+                  ),
+                ),
+
+                // ── Shuffle animation ─────────────────────────────────────
+                if (_introPhase == _DraftIntroPhase.shuffle)
+                  DeckShuffleAnimator(
+                    onDone: () =>
+                        setState(() => _introPhase = _DraftIntroPhase.deal),
+                  ),
+
+                // ── Deal animation ────────────────────────────────────────
+                if (_introPhase == _DraftIntroPhase.deal)
+                  CardDealAnimator(
+                    count: drafted.length,
+                    destinations: _cardDestinations(available, drafted.length),
+                    deckCenter: Offset(
+                      available.width / 2,
+                      available.height / 2,
+                    ),
+                    onDone: () =>
+                        setState(() => _introPhase = _DraftIntroPhase.ready),
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );
