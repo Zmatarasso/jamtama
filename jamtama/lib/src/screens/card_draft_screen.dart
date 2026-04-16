@@ -55,25 +55,29 @@ class _CardDraftScreenState extends ConsumerState<CardDraftScreen> {
     });
   }
 
+  // Draft card dimensions — match the in-game hand card size (scale 1.47 of
+  // the native 76×100 CardWidget).
+  static const double _cardW = 112.0;
+  static const double _cardH = 147.0;
+
   /// Approximate screen-space centres for [count] draft cards.
   ///
-  /// Cards are displayed in a centred [Row] at ~76 px wide with 16 px total
-  /// horizontal gap between them (8 px padding each side).  The vertical
-  /// position is estimated as 50 % of the available height (between the two
-  /// equal Spacers that bracket the card row).
+  /// Cards are displayed in a centred [Row] at [_cardW] wide with 16 px gap
+  /// between them.  The vertical position is estimated as 50 % of the
+  /// available height (between the two equal Spacers that bracket the card
+  /// row).
   ///
   /// These positions are relative to the [Stack]'s origin (top-left of
   /// SafeArea), so they match the coordinate space that [CardDealAnimator]
   /// uses for its [Positioned] children.
   List<Offset> _cardDestinations(Size available, int count) {
-    const cardW = 76.0;
     const gap = 16.0;
-    final totalW = count * cardW + (count - 1) * gap;
-    final startX = (available.width - totalW) / 2 + cardW / 2;
+    final totalW = count * _cardW + (count - 1) * gap;
+    final startX = (available.width - totalW) / 2 + _cardW / 2;
     final cardY = available.height * 0.50;
     return List.generate(
       count,
-      (i) => Offset(startX + i * (cardW + gap), cardY),
+      (i) => Offset(startX + i * (_cardW + gap), cardY),
     );
   }
 
@@ -189,8 +193,8 @@ class _CardDraftScreenState extends ConsumerState<CardDraftScreen> {
             const SizedBox(height: 8),
             Center(
               child: SizedBox(
-                width: 76,
-                height: 100,
+                width: _cardW,
+                height: _cardH,
                 child: FittedBox(
                   fit: BoxFit.contain,
                   child: CardWidget(card: match.tableCard!),
@@ -201,18 +205,25 @@ class _CardDraftScreenState extends ConsumerState<CardDraftScreen> {
 
           const Spacer(),
 
-          // Card row
+          // Card row — each card sized to match the in-game hand card size.
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: drafted.map((card) {
               final isSelected = effectiveSelected.contains(card);
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: CardWidget(
-                  card: card,
-                  selected: isSelected,
-                  dimmed: !isSelected && effectiveSelected.length == 2,
-                  onTap: mustTakeAll ? null : () => _toggle(card),
+                child: SizedBox(
+                  width: _cardW,
+                  height: _cardH,
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    child: CardWidget(
+                      card: card,
+                      selected: isSelected,
+                      dimmed: !isSelected && effectiveSelected.length == 2,
+                      onTap: mustTakeAll ? null : () => _toggle(card),
+                    ),
+                  ),
                 ),
               );
             }).toList(),
