@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/audio_settings_provider.dart';
+import '../providers/tutorial_provider.dart';
 
 const _bg = Color(0xFF1A1A2E);
 const _surface = Color(0xFF16213E);
@@ -70,6 +71,12 @@ class OptionsScreen extends ConsumerWidget {
             value: audio.musicVolume,
             onChanged: notifier.setMusic,
           ),
+          const SizedBox(height: 32),
+
+          // ── Tutorial ──────────────────────────────────────────────────────
+          _SectionHeader(label: 'Tutorial'),
+          const SizedBox(height: 16),
+          _ResetTutorialButton(),
         ],
       ),
     );
@@ -239,6 +246,37 @@ class _VolumeSlider extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Reset tutorial button
+// ---------------------------------------------------------------------------
+
+class _ResetTutorialButton extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return OutlinedButton.icon(
+      icon: const Icon(Icons.school_outlined),
+      label: const Text('Reset Tutorial'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: _textSecondary,
+        side: BorderSide(color: _surfaceLight),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+      ),
+      onPressed: () async {
+        await ref.read(tutorialProvider.notifier).reset();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Tutorial reset — it will show next time you open the menu.'),
+              backgroundColor: Color(0xFF16213E),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      },
     );
   }
 }

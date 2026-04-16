@@ -62,4 +62,11 @@ abstract class UserDataRepository {
   String? loadSelectedDeckId();
 
   Future<void> saveSelectedDeckId(String? id);
+
+  // ── Tutorial ───────────────────────────────────────────────────────────────
+
+  /// Returns true if the player has completed the tutorial at least once.
+  bool loadTutorialDone();
+
+  Future<void> saveTutorialDone(bool done);
 }
