@@ -2,6 +2,11 @@ import 'dart:math' show cos, sin, pi, min;
 
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
+
+import '../animations/card_animation_styles.dart' show PieceMoveEffect, pieceMoveParams;
+import '../animations/card_play_animator.dart';
+import '../animations/draft_animator.dart' show RoundOverEntrance;
+import '../animations/piece_move_animator.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collection/collection.dart';
 
@@ -33,6 +38,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   double _cardScale   = 1.8;  // fan hand card scale (1.0 = native 76×100)
   double _stripCardW  = 112.0; // card strip card width (px); height locked to w×100/76
   bool   _debugOpen   = true;
+
+  // ── Animation overlay state ──────────────────────────────────────────────
+  // These are not setState'd because they're cheap positional bookmarks —
+  // the animation widgets themselves manage their own animation controllers.
+  double _lastBoardSize = 200.0;
+  Size   _lastBoardAreaSize = const Size(300, 500);
+
+  _PieceMoveAnim?  _pieceMove;
+  _ImpactAnim?     _impactAnim;
+  _KingCaptureAnim? _kingCapture;
+  _CardPlayAnim?   _cardPlay;
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +85,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                 final boardSize =
                                     (min(constraints.maxWidth, constraints.maxHeight) - 16.0)
                                     * _boardScale;
+                                // Cache for animation position math (not setState — bookkeeping).
+                                _lastBoardSize = boardSize;
+                                _lastBoardAreaSize = Size(
+                                  constraints.maxWidth,
+                                  constraints.maxHeight,
+                                );
                                 return Positioned(
                                   left: _boardLeft,
                                   top: 0,
@@ -76,7 +98,11 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                   height: boardSize,
                                   child: Padding(
                                     padding: const EdgeInsets.all(8),
-                                    child: _Board(round: round, board: board),
+                                    child: _Board(
+                                      round: round,
+                                      board: board,
+                                      onMoveExecuted: _handleMoveExecuted,
+                                    ),
                                   ),
                                 );
                               },
@@ -108,6 +134,55 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                     round.phase == RoundPhase.playing,
                               ),
                             ),
+
+                            // ── Animation overlays ──────────────────────────
+                            // Piece slides from its source cell to destination.
+                            if (_pieceMove != null)
+                              PieceMoveAnimator(
+                                startOffset: _pieceMove!.start,
+                                endOffset:   _pieceMove!.end,
+                                pieceColor:  _pieceMove!.pieceColor,
+                                pieceRadius: 20,
+                                effect:      _pieceMove!.effect,
+                                onDone: () {
+                                  final anim = _pieceMove;
+                                  setState(() => _pieceMove = null);
+                                  if (anim != null && anim.hasImpact && mounted) {
+                                    setState(() => _impactAnim = _ImpactAnim(
+                                      center:   anim.impactCenter,
+                                      cellSize: anim.cellSize,
+                                      effect:   anim.effect,
+                                    ));
+                                  }
+                                },
+                              ),
+
+                            // Landing impact at destination cell.
+                            if (_impactAnim != null)
+                              ImpactOverlay(
+                                center:   _impactAnim!.center,
+                                cellSize: _impactAnim!.cellSize,
+                                effect:   _impactAnim!.effect,
+                                onDone: () => setState(() => _impactAnim = null),
+                              ),
+
+                            // King-capture burst — plays after piece lands.
+                            if (_kingCapture != null)
+                              KingCaptureOverlay(
+                                kingCenter: _kingCapture!.center,
+                                kingColor:  _kingCapture!.color,
+                                onDone: () => setState(() => _kingCapture = null),
+                              ),
+
+                            // Card flies out of hand toward board on move confirm.
+                            if (_cardPlay != null)
+                              CardPlayAnimator(
+                                startOffset: _cardPlay!.start,
+                                endOffset:   _cardPlay!.end,
+                                card:        _cardPlay!.card,
+                                cardSize:    _cardPlay!.cardSize,
+                                onDone: () => setState(() => _cardPlay = null),
+                              ),
                           ],
                         ),
                       ),
@@ -141,6 +216,72 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         ),
       ),
     );
+  }
+
+  // ── Move animation handler ───────────────────────────────────────────────
+  //
+  // Called by [_Cell] immediately after [executeMove] so we can capture the
+  // pre-move state (which cell the piece came from, which card was played).
+  // All positions are in the coordinate space of the board Stack (Expanded).
+  void _handleMoveExecuted(
+    int fromRow, int fromCol,
+    int toRow,   int toCol,
+    CardDefinition? pendingCard,
+    Color pieceColor,
+    bool capturedKing,
+  ) {
+    final cellSize = (_lastBoardSize - 16) / 5;
+
+    // Centre of a board cell in the Stack's coordinate space.
+    Offset cellCenter(int row, int col) => Offset(
+      _boardLeft + 8 + col * cellSize + cellSize / 2,
+      8          + (4 - row) * cellSize + cellSize / 2,
+    );
+
+    final startOff  = cellCenter(fromRow, fromCol);
+    final endOff    = cellCenter(toRow,   toCol);
+    final effect    = pendingCard?.moveEffect ?? PieceMoveEffect.glide;
+    final params    = pieceMoveParams[effect]!;
+
+    // Opponent king's colour for the burst (the piece that was captured belongs
+    // to the other player, so flip the moving player's colour).
+    final capturedKingColor = pieceColor == const Color(0xFFDC143C)
+        ? const Color(0xFF4169E1)
+        : const Color(0xFFDC143C);
+
+    // Card flies from the active player's hand toward the board centre.
+    _CardPlayAnim? cardPlayAnim;
+    if (pendingCard != null) {
+      final isRed  = pieceColor == const Color(0xFFDC143C);
+      final handY  = isRed
+          ? _lastBoardAreaSize.height - 60.0   // Red's hand is at the bottom
+          : 60.0;                               // Blue's is at the top (rotated)
+      cardPlayAnim = _CardPlayAnim(
+        start:    Offset(_lastBoardAreaSize.width / 2, handY),
+        end:      Offset(_boardLeft + _lastBoardSize / 2, _lastBoardSize / 2),
+        card:     pendingCard,
+        cardSize: const Size(50, 70),
+      );
+    }
+
+    setState(() {
+      _pieceMove = _PieceMoveAnim(
+        start:        startOff,
+        end:          endOff,
+        pieceColor:   pieceColor,
+        effect:       effect,
+        hasImpact:    params.hasImpact,
+        impactCenter: endOff,
+        cellSize:     cellSize,
+      );
+      _cardPlay = cardPlayAnim;
+      if (capturedKing) {
+        _kingCapture = _KingCaptureAnim(
+          center: endOff,
+          color:  capturedKingColor,
+        );
+      }
+    });
   }
 }
 
@@ -400,8 +541,13 @@ class _PlayerArea extends ConsumerWidget {
 class _Board extends ConsumerWidget {
   final RoundState round;
   final BoardCosmetic board;
+  final _MoveCallback? onMoveExecuted;
 
-  const _Board({required this.round, required this.board});
+  const _Board({
+    required this.round,
+    required this.board,
+    this.onMoveExecuted,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -432,6 +578,7 @@ class _Board extends ConsumerWidget {
           masterCosmetic: masterCosmetic,
           studentCosmetic: studentCosmetic,
           throneCosmetic: throneCosmetic,
+          onMoveExecuted: onMoveExecuted,
         );
       },
     );
@@ -450,6 +597,7 @@ class _Cell extends ConsumerStatefulWidget {
   final MasterPieceCosmetic masterCosmetic;
   final StudentPieceCosmetic studentCosmetic;
   final ThroneCosmetic throneCosmetic;
+  final _MoveCallback? onMoveExecuted;
 
   const _Cell({
     required this.row,
@@ -459,6 +607,7 @@ class _Cell extends ConsumerStatefulWidget {
     required this.masterCosmetic,
     required this.studentCosmetic,
     required this.throneCosmetic,
+    this.onMoveExecuted,
   });
 
   @override
@@ -509,12 +658,17 @@ class _CellState extends ConsumerState<_Cell>
       onWillAcceptWithDetails: (_) =>
           ref.read(matchProvider).round?.validMoves.contains(pos) ?? false,
       onAcceptWithDetails: (_) {
-        final liveRound = ref.read(matchProvider).round;
+        final liveRound  = ref.read(matchProvider).round;
+        final fromPiece  = liveRound?.selectedPiece;
+        final pendingCard = liveRound?.pendingCard;
         final targetPiece = liveRound?.pieces.firstWhereOrNull(
             (p) => p.row == widget.row && p.col == widget.col);
         final isCapture = targetPiece != null &&
             targetPiece.player != liveRound?.currentTurn;
-        final audio = ref.read(audioServiceProvider);
+        final capturedKing =
+            isCapture && targetPiece.type == PieceType.master;
+
+        final audio   = ref.read(audioServiceProvider);
         final loadout = ref.read(cosmeticLoadoutProvider);
         if (isCapture) {
           audio.playCapture(loadout.soundPack);
@@ -522,9 +676,24 @@ class _CellState extends ConsumerState<_Cell>
           audio.playMove(loadout.soundPack);
         }
         if (loadout.moveEffect.type == MoveEffectType.glitter) _triggerGlitter();
+
         ref
             .read(matchProvider.notifier)
             .executeMove(row: widget.row, col: widget.col);
+
+        // Fire animation callback with pre-move context.
+        if (fromPiece != null) {
+          final pieceColor = fromPiece.player == Player.red
+              ? const Color(0xFFDC143C)
+              : const Color(0xFF4169E1);
+          widget.onMoveExecuted?.call(
+            fromPiece.row, fromPiece.col,
+            widget.row, widget.col,
+            pendingCard,
+            pieceColor,
+            capturedKing,
+          );
+        }
       },
       builder: (context, candidates, _) {
         final isHovering = candidates.isNotEmpty;
@@ -1880,7 +2049,13 @@ class RoundOverDialog extends ConsumerWidget {
         ? 'Way of the Stone'
         : 'Way of the Stream';
 
-    return AlertDialog(
+    // Determine if the local player won (Red is always local player 1).
+    // TODO: update when multiplayer distinguishes local vs remote player.
+    final localPlayerWon = winner == Player.red;
+
+    return RoundOverEntrance(
+      isWin: localPlayerWon,
+      child: AlertDialog(
       backgroundColor: const Color(0xFF1A0F08),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Text(
@@ -1933,7 +2108,8 @@ class RoundOverDialog extends ConsumerWidget {
           child: Text(isMatchOver ? 'New Match' : 'Next Round'),
         ),
       ],
-    );
+    ), // AlertDialog
+    ); // RoundOverEntrance
   }
 
   Widget _scoreChip(String label, int wins, Color color) {
@@ -1959,4 +2135,67 @@ class RoundOverDialog extends ConsumerWidget {
       ],
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// Animation callback type + board-overlay data classes
+// ---------------------------------------------------------------------------
+
+/// Fired by [_Cell] immediately after executeMove so [_GameScreenState] can
+/// trigger the appropriate piece-move, card-play, and king-capture animations.
+typedef _MoveCallback = void Function(
+  int fromRow, int fromCol,
+  int toRow,   int toCol,
+  CardDefinition? pendingCard,
+  Color pieceColor,
+  bool capturedKing,
+);
+
+class _PieceMoveAnim {
+  final Offset start;
+  final Offset end;
+  final Color  pieceColor;
+  final PieceMoveEffect effect;
+  final bool   hasImpact;
+  final Offset impactCenter;
+  final double cellSize;
+  const _PieceMoveAnim({
+    required this.start,
+    required this.end,
+    required this.pieceColor,
+    required this.effect,
+    required this.hasImpact,
+    required this.impactCenter,
+    required this.cellSize,
+  });
+}
+
+class _ImpactAnim {
+  final Offset center;
+  final double cellSize;
+  final PieceMoveEffect effect;
+  const _ImpactAnim({
+    required this.center,
+    required this.cellSize,
+    required this.effect,
+  });
+}
+
+class _KingCaptureAnim {
+  final Offset center;
+  final Color  color;
+  const _KingCaptureAnim({required this.center, required this.color});
+}
+
+class _CardPlayAnim {
+  final Offset start;
+  final Offset end;
+  final CardDefinition card;
+  final Size   cardSize;
+  const _CardPlayAnim({
+    required this.start,
+    required this.end,
+    required this.card,
+    required this.cardSize,
+  });
 }

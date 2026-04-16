@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../animations/card_animation_styles.dart';
 import '../models/card.dart';
 import '../models/deck.dart';
 
@@ -13,7 +14,6 @@ import '../models/deck.dart';
 // The provider flips both dx/dy for Blue when computing valid squares.
 //
 // Cards are themed as historical melee weapons.
-// Move patterns are unchanged — only names and IDs have been replaced.
 // ---------------------------------------------------------------------------
 
 /// Wide-arcing polearm — strikes forward-diagonals and both sides.
@@ -25,6 +25,8 @@ const halberd = CardDefinition(
     CardMove(-1, 0), CardMove(1, 0), // left, right
   ],
   stampColor: Colors.red,
+  playStyle: CardPlayStyle.sweep,
+  moveEffect: PieceMoveEffect.slash,
 );
 
 /// Heavy flanged club — batters straight forward and to both sides.
@@ -36,6 +38,8 @@ const mace = CardDefinition(
     CardMove(-1, 0), CardMove(1, 0), // left, right
   ],
   stampColor: Colors.red,
+  playStyle: CardPlayStyle.slam,
+  moveEffect: PieceMoveEffect.stomp,
 );
 
 /// Curved harvesting blade — hooks forward-diagonals and pulls back.
@@ -47,6 +51,8 @@ const sickle = CardDefinition(
     CardMove(0, -1),                 // backward
   ],
   stampColor: Colors.red,
+  playStyle: CardPlayStyle.sweep,
+  moveEffect: PieceMoveEffect.slash,
 );
 
 /// Thrusting pole weapon — lunges forward, retreats diagonally.
@@ -58,6 +64,8 @@ const spear = CardDefinition(
     CardMove(-1, -1), CardMove(1, -1), // back-left, back-right
   ],
   stampColor: Colors.blue,
+  playStyle: CardPlayStyle.pierce,
+  moveEffect: PieceMoveEffect.pierce,
 );
 
 /// Cavalry curved blade — advances, cuts left, withdraws.
@@ -70,6 +78,8 @@ const saber = CardDefinition(
     CardMove(0, -1), // backward
   ],
   stampColor: Colors.red,
+  playStyle: CardPlayStyle.lunge,
+  moveEffect: PieceMoveEffect.slash,
 );
 
 /// Double-edged straight sword — advances, cuts right, withdraws.
@@ -82,6 +92,8 @@ const longsword = CardDefinition(
     CardMove(0, -1), // backward
   ],
   stampColor: Colors.blue,
+  playStyle: CardPlayStyle.lunge,
+  moveEffect: PieceMoveEffect.charge,
 );
 
 /// Chain weapon — sweeps left and forward-left, right and back-right.
@@ -93,6 +105,8 @@ const flail = CardDefinition(
     CardMove(1, 0),  CardMove(1, -1), // right, back-right
   ],
   stampColor: Colors.blue,
+  playStyle: CardPlayStyle.sweep,
+  moveEffect: PieceMoveEffect.spin,
 );
 
 /// Crushing two-handed hammer — right, forward-right, left, back-left.
@@ -100,10 +114,12 @@ const warhammer = CardDefinition(
   id: 'warhammer',
   name: 'War Hammer',
   moves: [
-    CardMove(1, 0),  CardMove(1, 1),  // right, front-right
+    CardMove(1, 0),  CardMove(1, 1),   // right, front-right
     CardMove(-1, 0), CardMove(-1, -1), // left, back-left
   ],
   stampColor: Colors.red,
+  playStyle: CardPlayStyle.slam,
+  moveEffect: PieceMoveEffect.stomp,
 );
 
 /// Short blade — strikes all four diagonal squares.
@@ -115,6 +131,8 @@ const dagger = CardDefinition(
     CardMove(-1, -1), CardMove(1, -1), // back-left, back-right
   ],
   stampColor: Colors.blue,
+  playStyle: CardPlayStyle.drift,
+  moveEffect: PieceMoveEffect.pierce,
 );
 
 /// Long curved blade on a pole — hooks front-left, cuts right, back-left.
@@ -122,11 +140,13 @@ const scythe = CardDefinition(
   id: 'scythe',
   name: 'Scythe',
   moves: [
-    CardMove(-1, 1), // front-left
-    CardMove(1, 0),  // right
+    CardMove(-1, 1),  // front-left
+    CardMove(1, 0),   // right
     CardMove(-1, -1), // back-left
   ],
   stampColor: Colors.blue,
+  playStyle: CardPlayStyle.sweep,
+  moveEffect: PieceMoveEffect.slash,
 );
 
 /// Slender thrusting sword — pierces front-right, parries left, back-right.
@@ -139,6 +159,8 @@ const rapier = CardDefinition(
     CardMove(1, -1), // back-right
   ],
   stampColor: Colors.red,
+  playStyle: CardPlayStyle.drift,
+  moveEffect: PieceMoveEffect.glide,
 );
 
 /// Every card available for the community pool.
