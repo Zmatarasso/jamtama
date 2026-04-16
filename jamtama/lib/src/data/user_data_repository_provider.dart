@@ -1,23 +1,25 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-import 'shared_prefs_user_data_repository.dart';
 import 'user_data_repository.dart';
 
-/// Provides the [UserDataRepository] implementation.
+/// Provides the active [UserDataRepository].
 ///
-/// Overridden in main() with a pre-loaded [SharedPreferences] instance
-/// so reads remain synchronous throughout the app.
+/// main() overrides this with the concrete implementation before runApp:
+///
+/// ```dart
+/// runApp(ProviderScope(
+///   overrides: [
+///     userDataRepositoryProvider.overrideWithValue(
+///       SharedPrefsUserDataRepository(prefs),
+///     ),
+///   ],
+///   child: const JamtamaApp(),
+/// ));
+/// ```
+///
+/// When Firebase is added, swap in FirebaseUserDataRepository here.
 final userDataRepositoryProvider = Provider<UserDataRepository>(
-  (ref) => throw UnimplementedError(
-    'userDataRepositoryProvider must be overridden in main() '
-    'after SharedPreferences.getInstance() resolves.',
+  (_) => throw UnimplementedError(
+    'userDataRepositoryProvider must be overridden in main() before runApp.',
   ),
 );
-
-/// Convenience helper — call in main() before runApp.
-Future<dynamic> buildUserDataRepositoryOverride() async {
-  final prefs = await SharedPreferences.getInstance();
-  return userDataRepositoryProvider
-      .overrideWithValue(SharedPrefsUserDataRepository(prefs));
-}

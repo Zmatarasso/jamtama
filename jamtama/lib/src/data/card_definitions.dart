@@ -11,127 +11,147 @@ import '../models/deck.dart';
 // Red is at row 0 and moves toward row 4 (forward = +row).
 // Blue is at row 4 and moves toward row 0 (forward = -row).
 // The provider flips both dx/dy for Blue when computing valid squares.
+//
+// Cards are themed as historical melee weapons.
+// Move patterns are unchanged — only names and IDs have been replaced.
 // ---------------------------------------------------------------------------
 
-const elephant = CardDefinition(
-  id: 'elephant',
-  name: 'Elephant',
+/// Wide-arcing polearm — strikes forward-diagonals and both sides.
+const halberd = CardDefinition(
+  id: 'halberd',
+  name: 'Halberd',
   moves: [
-    CardMove(-1, 1), CardMove(1, 1), // left-fwd, right-fwd
+    CardMove(-1, 1), CardMove(1, 1), // front-left, front-right
     CardMove(-1, 0), CardMove(1, 0), // left, right
   ],
   stampColor: Colors.red,
 );
 
-const boar = CardDefinition(
-  id: 'boar',
-  name: 'Boar',
+/// Heavy flanged club — batters straight forward and to both sides.
+const mace = CardDefinition(
+  id: 'mace',
+  name: 'Mace',
   moves: [
-    CardMove(0, 1), // forward
+    CardMove(0, 1),                  // forward
     CardMove(-1, 0), CardMove(1, 0), // left, right
   ],
   stampColor: Colors.red,
 );
 
-const mantis = CardDefinition(
-  id: 'mantis',
-  name: 'Mantis',
+/// Curved harvesting blade — hooks forward-diagonals and pulls back.
+const sickle = CardDefinition(
+  id: 'sickle',
+  name: 'Sickle',
   moves: [
-    CardMove(-1, 1), CardMove(1, 1), // left-fwd, right-fwd
-    CardMove(0, -1), // backward
+    CardMove(-1, 1), CardMove(1, 1), // front-left, front-right
+    CardMove(0, -1),                 // backward
   ],
   stampColor: Colors.red,
 );
 
-const crane = CardDefinition(
-  id: 'crane',
-  name: 'Crane',
+/// Thrusting pole weapon — lunges forward, retreats diagonally.
+const spear = CardDefinition(
+  id: 'spear',
+  name: 'Spear',
   moves: [
-    CardMove(0, 1), // forward
-    CardMove(-1, -1), CardMove(1, -1), // left-back, right-back
+    CardMove(0, 1),                    // forward
+    CardMove(-1, -1), CardMove(1, -1), // back-left, back-right
   ],
   stampColor: Colors.blue,
 );
 
-const horse = CardDefinition(
-  id: 'horse',
-  name: 'Horse',
+/// Cavalry curved blade — advances, cuts left, withdraws.
+const saber = CardDefinition(
+  id: 'saber',
+  name: 'Saber',
   moves: [
-    CardMove(0, 1), // forward
+    CardMove(0, 1),  // forward
     CardMove(-1, 0), // left
     CardMove(0, -1), // backward
   ],
   stampColor: Colors.red,
 );
 
-const ox = CardDefinition(
-  id: 'ox',
-  name: 'Ox',
+/// Double-edged straight sword — advances, cuts right, withdraws.
+const longsword = CardDefinition(
+  id: 'longsword',
+  name: 'Longsword',
   moves: [
-    CardMove(0, 1), // forward
-    CardMove(1, 0), // right
+    CardMove(0, 1),  // forward
+    CardMove(1, 0),  // right
     CardMove(0, -1), // backward
   ],
   stampColor: Colors.blue,
 );
 
-const goose = CardDefinition(
-  id: 'goose',
-  name: 'Goose',
+/// Chain weapon — sweeps left and forward-left, right and back-right.
+const flail = CardDefinition(
+  id: 'flail',
+  name: 'Flail',
   moves: [
-    CardMove(-1, 0), CardMove(-1, 1), // left, left-fwd
-    CardMove(1, 0), CardMove(1, -1), // right, right-back
+    CardMove(-1, 0), CardMove(-1, 1), // left, front-left
+    CardMove(1, 0),  CardMove(1, -1), // right, back-right
   ],
   stampColor: Colors.blue,
 );
 
-const rooster = CardDefinition(
-  id: 'rooster',
-  name: 'Rooster',
+/// Crushing two-handed hammer — right, forward-right, left, back-left.
+const warhammer = CardDefinition(
+  id: 'warhammer',
+  name: 'War Hammer',
   moves: [
-    CardMove(1, 0), CardMove(1, 1), // right, right-fwd
-    CardMove(-1, 0), CardMove(-1, -1), // left, left-back
+    CardMove(1, 0),  CardMove(1, 1),  // right, front-right
+    CardMove(-1, 0), CardMove(-1, -1), // left, back-left
   ],
   stampColor: Colors.red,
 );
 
-const monkey = CardDefinition(
-  id: 'monkey',
-  name: 'Monkey',
+/// Short blade — strikes all four diagonal squares.
+const dagger = CardDefinition(
+  id: 'dagger',
+  name: 'Dagger',
   moves: [
-    CardMove(-1, 1), CardMove(1, 1), // diag-fwd
-    CardMove(-1, -1), CardMove(1, -1), // diag-back
+    CardMove(-1, 1), CardMove(1, 1),   // front-left, front-right
+    CardMove(-1, -1), CardMove(1, -1), // back-left, back-right
   ],
   stampColor: Colors.blue,
 );
 
-const eel = CardDefinition(
-  id: 'eel',
-  name: 'Eel',
+/// Long curved blade on a pole — hooks front-left, cuts right, back-left.
+const scythe = CardDefinition(
+  id: 'scythe',
+  name: 'Scythe',
   moves: [
-    CardMove(-1, 1), // left-fwd
-    CardMove(1, 0), // right
-    CardMove(-1, -1), // left-back
+    CardMove(-1, 1), // front-left
+    CardMove(1, 0),  // right
+    CardMove(-1, -1), // back-left
   ],
   stampColor: Colors.blue,
 );
 
-const cobra = CardDefinition(
-  id: 'cobra',
-  name: 'Cobra',
+/// Slender thrusting sword — pierces front-right, parries left, back-right.
+const rapier = CardDefinition(
+  id: 'rapier',
+  name: 'Rapier',
   moves: [
-    CardMove(1, 1), // right-fwd
+    CardMove(1, 1),  // front-right
     CardMove(-1, 0), // left
-    CardMove(1, -1), // right-back
+    CardMove(1, -1), // back-right
   ],
   stampColor: Colors.red,
 );
 
 /// Every card available for the community pool.
 const allCards = <CardDefinition>[
-  elephant, boar, mantis, crane, horse,
-  ox, goose, rooster, monkey, eel, cobra,
+  halberd, mace, sickle, spear, saber,
+  longsword, flail, warhammer, dagger, scythe, rapier,
 ];
 
-const redDefaultDeck = Deck(cards: [elephant, boar, horse, ox, crane, mantis]);
-const blueDefaultDeck = Deck(cards: [goose, rooster, monkey, eel, cobra, mantis]);
+/// ID → CardDefinition registry. Used to deserialize persisted deck data.
+/// Add new cards here when the catalogue grows.
+final cardRegistry = <String, CardDefinition>{
+  for (final c in allCards) c.id: c,
+};
+
+const redDefaultDeck  = Deck(cards: [halberd, mace, saber, longsword, spear, sickle]);
+const blueDefaultDeck = Deck(cards: [flail, warhammer, dagger, scythe, rapier, sickle]);

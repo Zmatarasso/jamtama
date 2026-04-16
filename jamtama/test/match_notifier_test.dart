@@ -323,7 +323,7 @@ void main() {
       expect(round.pieces.length, 2); // 1 red + 1 blue
 
       // Red boar: forward from (3,2) = (4,2) where Blue student is.
-      override.read(matchProvider.notifier).selectCard(boar);
+      override.read(matchProvider.notifier).selectCard(mace);
       override.read(matchProvider.notifier)
           .selectPiece(round.pieces.first); // red student
       override.read(matchProvider.notifier).executeMove(row: 4, col: 2);
@@ -350,7 +350,7 @@ void main() {
       final n = c.read(matchProvider.notifier) as _ControlledMatchNotifier;
       n.setupStoneScenario(); // Red student at (3,2), Blue master at (4,2)
 
-      c.read(matchProvider.notifier).selectCard(boar);
+      c.read(matchProvider.notifier).selectCard(mace);
       final piece = c.read(matchProvider).round!.pieces.first;
       c.read(matchProvider.notifier).selectPiece(piece);
       c.read(matchProvider.notifier).executeMove(row: 4, col: 2);
@@ -372,7 +372,7 @@ void main() {
       final n = c.read(matchProvider.notifier) as _ControlledMatchNotifier;
       n.setupStreamScenario(); // Red master at (3,2), nothing at (4,2)
 
-      c.read(matchProvider.notifier).selectCard(boar);
+      c.read(matchProvider.notifier).selectCard(mace);
       final piece = c.read(matchProvider).round!.pieces.first;
       c.read(matchProvider.notifier).selectPiece(piece);
       c.read(matchProvider.notifier).executeMove(row: 4, col: 2);
@@ -394,7 +394,7 @@ void main() {
       final n = c.read(matchProvider.notifier) as _ControlledMatchNotifier;
       n.setupBlueStreamScenario(); // Blue master at (1,2), nothing at (0,2)
 
-      c.read(matchProvider.notifier).selectCard(boar);
+      c.read(matchProvider.notifier).selectCard(mace);
       final piece = c.read(matchProvider).round!.pieces.first;
       c.read(matchProvider.notifier).selectPiece(piece);
       c.read(matchProvider.notifier).executeMove(row: 0, col: 2);
@@ -414,7 +414,7 @@ void main() {
 
       (c.read(matchProvider.notifier) as _ControlledMatchNotifier)
           .setupStoneScenario();
-      c.read(matchProvider.notifier).selectCard(boar);
+      c.read(matchProvider.notifier).selectCard(mace);
       final piece = c.read(matchProvider).round!.pieces.first;
       c.read(matchProvider.notifier).selectPiece(piece);
       c.read(matchProvider.notifier).executeMove(row: 4, col: 2);
@@ -434,7 +434,7 @@ void main() {
       void winRoundForRed() {
         (c.read(matchProvider.notifier) as _ControlledMatchNotifier)
             .setupStoneScenario();
-        c.read(matchProvider.notifier).selectCard(boar);
+        c.read(matchProvider.notifier).selectCard(mace);
         final piece = c.read(matchProvider).round!.pieces.first;
         c.read(matchProvider.notifier).selectPiece(piece);
         c.read(matchProvider.notifier).executeMove(row: 4, col: 2);
@@ -503,7 +503,7 @@ class _ControlledMatchNotifier extends MatchNotifier {
     state = state.copyWith(phase: MatchPhase.playing, round: round);
   }
 
-  /// Red student at (3,2) can capture Blue student at (4,2) with boar.
+  /// Red student at (3,2) can capture Blue student at (4,2) with mace (forward).
   void setupCaptureScenario() {
     _setRound(RoundState(
       roundNumber: 1,
@@ -512,9 +512,9 @@ class _ControlledMatchNotifier extends MatchNotifier {
         Piece(type: PieceType.student, player: Player.red, row: 3, col: 2),
         Piece(type: PieceType.student, player: Player.blue, row: 4, col: 2),
       ],
-      redHand: [boar, ox],
-      blueHand: [horse, crane],
-      communityCard: monkey,
+      redHand: [mace, halberd],
+      blueHand: [spear, flail],
+      communityCard: warhammer,
       currentTurn: Player.red,
     ));
   }
@@ -528,9 +528,9 @@ class _ControlledMatchNotifier extends MatchNotifier {
         Piece(type: PieceType.student, player: Player.red, row: 3, col: 2),
         Piece(type: PieceType.master, player: Player.blue, row: 4, col: 2),
       ],
-      redHand: [boar, ox],
-      blueHand: [horse, crane],
-      communityCard: monkey,
+      redHand: [mace, halberd],
+      blueHand: [spear, flail],
+      communityCard: warhammer,
       currentTurn: Player.red,
     ));
   }
@@ -543,14 +543,15 @@ class _ControlledMatchNotifier extends MatchNotifier {
       pieces: const [
         Piece(type: PieceType.master, player: Player.red, row: 3, col: 2),
       ],
-      redHand: [boar, ox],
-      blueHand: [horse, crane],
-      communityCard: monkey,
+      redHand: [mace, halberd],
+      blueHand: [spear, flail],
+      communityCard: warhammer,
       currentTurn: Player.red,
     ));
   }
 
   /// Blue MASTER at (1,2) steps to (0,2) — Blue Way of the Stream.
+  /// mace has CardMove(0,1) which for Blue flips to dr=-1, so (1,2)→(0,2).
   void setupBlueStreamScenario() {
     _setRound(RoundState(
       roundNumber: 1,
@@ -558,9 +559,9 @@ class _ControlledMatchNotifier extends MatchNotifier {
       pieces: const [
         Piece(type: PieceType.master, player: Player.blue, row: 1, col: 2),
       ],
-      redHand: [boar, ox],
-      blueHand: [boar, crane],
-      communityCard: monkey,
+      redHand: [mace, halberd],
+      blueHand: [mace, flail],
+      communityCard: warhammer,
       currentTurn: Player.blue,
     ));
   }

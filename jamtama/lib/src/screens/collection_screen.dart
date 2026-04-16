@@ -948,7 +948,7 @@ class _CosmeticsTabState extends ConsumerState<_CosmeticsTab> {
       case CosmeticSlotType.moveEffect:
         notifier.equipMoveEffect(preview.moveEffect);
       case CosmeticSlotType.uiSounds:
-        notifier.equipUiSounds(preview.uiSounds);
+        notifier.equipSoundPack(preview.soundPack);
     }
 
     setState(() {
@@ -1319,13 +1319,13 @@ class _CosmeticsRoster extends ConsumerWidget {
                 onPreview: () => onPreview(equipped.copyWith(moveEffect: c)),
               ))
           .toList(),
-      CosmeticSlotType.uiSounds => collection.uiSoundSets
+      CosmeticSlotType.uiSounds => collection.soundPacks
           .map((c) => _RosterEntry(
                 id: c.id,
                 name: c.name,
-                isEquipped: equipped.uiSounds.id == c.id,
-                isPreviewing: preview?.uiSounds.id == c.id,
-                onPreview: () => onPreview(equipped.copyWith(uiSounds: c)),
+                isEquipped: equipped.soundPack.id == c.id,
+                isPreviewing: preview?.soundPack.id == c.id,
+                onPreview: () => onPreview(equipped.copyWith(soundPack: c)),
               ))
           .toList(),
     };
@@ -1346,7 +1346,7 @@ class _CosmeticsRoster extends ConsumerWidget {
       CosmeticSlotType.moveEffect =>
         preview!.moveEffect.id != equipped.moveEffect.id,
       CosmeticSlotType.uiSounds =>
-        preview!.uiSounds.id != equipped.uiSounds.id,
+        preview!.soundPack.id != equipped.soundPack.id,
     };
   }
 

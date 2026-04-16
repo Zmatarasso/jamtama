@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../cosmetics/providers/cosmetic_loadout_provider.dart';
 import '../models/card.dart';
 import '../models/match_state.dart';
 import '../models/piece.dart';
 import '../providers/match_provider.dart';
+import '../services/audio_service.dart';
 import '../widgets/card_widget.dart';
 
 class CardDraftScreen extends ConsumerStatefulWidget {
@@ -17,14 +19,9 @@ class CardDraftScreen extends ConsumerStatefulWidget {
 class _CardDraftScreenState extends ConsumerState<CardDraftScreen> {
   final Set<CardDefinition> _selected = {};
 
-  @override
-  void didUpdateWidget(CardDraftScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Clear selection when the phase changes (red → blue draft handoff).
-    _selected.clear();
-  }
-
   void _toggle(CardDefinition card) {
+    ref.read(audioServiceProvider).playCardDraft(
+        ref.read(cosmeticLoadoutProvider).soundPack);
     setState(() {
       if (_selected.contains(card)) {
         _selected.remove(card);
@@ -36,6 +33,14 @@ class _CardDraftScreenState extends ConsumerState<CardDraftScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Clear selection whenever the draft phase changes (red → blue handoff or
+    // new round starts).  Using ref.listen here guarantees this fires even
+    // when the widget instance is reused by the router.
+    ref.listen(
+      matchProvider.select((m) => m.phase),
+      (_, __) => setState(() => _selected.clear()),
+    );
+
     final match = ref.watch(matchProvider);
     final isDraftingRed = match.phase == MatchPhase.draftingRed;
     final player = isDraftingRed ? Player.red : Player.blue;

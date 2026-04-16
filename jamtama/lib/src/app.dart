@@ -19,7 +19,7 @@ class JamtamaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Jamtama',
+      title: 'Royal Rumble',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.brown),
@@ -37,57 +37,39 @@ class _RootRouter extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final match = ref.watch(matchProvider);
 
-    // Single listener handles both audio and coin rewards — fires
-    // exactly once per round-over transition.
+    // Single listener handles audio, dialog, and coin rewards — fires exactly
+    // once per round-over transition.
     ref.listen(matchProvider, (prev, next) {
       final wasOver = prev?.round?.phase == RoundPhase.over;
       final isNowOver = next.round?.phase == RoundPhase.over;
       if (!wasOver && isNowOver) {
+        // Play fanfare.
         final audio = ref.read(audioServiceProvider);
-        final sounds = ref.read(cosmeticLoadoutProvider).uiSounds;
+        final pack = ref.read(cosmeticLoadoutProvider).soundPack;
         if (next.phase == MatchPhase.matchOver) {
-          audio.playMatchWin(sounds);
+          audio.playMatchWin(pack);
           // Award coins — local match: both sides are the same player,
           // so give win + loss reward for completing the match.
           final wallet = ref.read(walletProvider.notifier);
           wallet.earn(matchWinReward + matchLossReward);
         } else {
-          audio.playRoundWin(sounds);
+          audio.playRoundWin(pack);
         }
-      }
-    });
 
-    // Show round-over dialog when we're in the playing phase but the round ended.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (match.phase == MatchPhase.playing &&
-          match.round?.phase == RoundPhase.over) {
-        // Only show if no dialog is already up.
-        if (ModalRoute.of(context)?.isCurrent ?? true) {
+        // Show dialog after the frame so the board paint finishes first.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
           showDialog(
             context: context,
             barrierDismissible: false,
             builder: (_) => RoundOverDialog(
-              round: match.round!,
-              redWins: match.redWins,
-              blueWins: match.blueWins,
-              isMatchOver: false,
+              round: next.round!,
+              redWins: next.redWins,
+              blueWins: next.blueWins,
+              isMatchOver: next.phase == MatchPhase.matchOver,
             ),
           );
-        }
-      } else if (match.phase == MatchPhase.matchOver &&
-          match.round?.phase == RoundPhase.over) {
-        if (ModalRoute.of(context)?.isCurrent ?? true) {
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (_) => RoundOverDialog(
-              round: match.round!,
-              redWins: match.redWins,
-              blueWins: match.blueWins,
-              isMatchOver: true,
-            ),
-          );
-        }
+        });
       }
     });
 
