@@ -86,6 +86,24 @@ class FirebaseUserDataRepository implements UserDataRepository {
       if (tutorialDone != null) {
         await local.saveTutorialDone(tutorialDone);
       }
+
+      // Display name
+      final displayName = data['displayName'] as String?;
+      if (displayName != null) {
+        await local.saveDisplayName(displayName);
+      }
+
+      // Unlocked cards
+      final cardIds = data['unlockedCardIds'];
+      if (cardIds is List) {
+        await local.saveUnlockedCardIds(Set<String>.from(cardIds));
+      }
+
+      // Unlocked cosmetics
+      final cosmeticIds = data['unlockedCosmeticIds'];
+      if (cosmeticIds is List) {
+        await local.saveUnlockedCosmeticIds(Set<String>.from(cosmeticIds));
+      }
     } catch (_) {
       // Offline or error — silently use local cache.
     }
@@ -134,6 +152,8 @@ class FirebaseUserDataRepository implements UserDataRepository {
   bool get isAnonymous => _auth.currentUser?.isAnonymous ?? true;
   String? get email => _auth.currentUser?.email;
 
+  Future<void> signOut() => _auth.signOut();
+
   // ── UserDataRepository ─────────────────────────────────────────────────────
 
   @override
@@ -172,5 +192,34 @@ class FirebaseUserDataRepository implements UserDataRepository {
   Future<void> saveTutorialDone(bool done) async {
     await local.saveTutorialDone(done);
     _pushToCloud({'tutorialDone': done});
+  }
+
+  @override
+  String? loadDisplayName() => local.loadDisplayName();
+
+  @override
+  Future<void> saveDisplayName(String name) async {
+    await local.saveDisplayName(name);
+    // Also update the Firebase Auth profile so it shows in the console.
+    await _auth.currentUser?.updateDisplayName(name);
+    _pushToCloud({'displayName': name});
+  }
+
+  @override
+  Set<String>? loadUnlockedCardIds() => local.loadUnlockedCardIds();
+
+  @override
+  Future<void> saveUnlockedCardIds(Set<String> ids) async {
+    await local.saveUnlockedCardIds(ids);
+    _pushToCloud({'unlockedCardIds': ids.toList()});
+  }
+
+  @override
+  Set<String>? loadUnlockedCosmeticIds() => local.loadUnlockedCosmeticIds();
+
+  @override
+  Future<void> saveUnlockedCosmeticIds(Set<String> ids) async {
+    await local.saveUnlockedCosmeticIds(ids);
+    _pushToCloud({'unlockedCosmeticIds': ids.toList()});
   }
 }

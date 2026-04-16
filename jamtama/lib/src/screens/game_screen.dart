@@ -1,5 +1,6 @@
 import 'dart:math' show cos, sin, pi, min;
 
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collection/collection.dart';
@@ -117,21 +118,22 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     ],
                   ),
 
-                  // ── Debug panel ──────────────────────────────────────────
-                  _DebugPanel(
-                    open: _debugOpen,
-                    onToggle: () => setState(() => _debugOpen = !_debugOpen),
-                    sliders: [
-                      _DebugSlider('Board scale', _boardScale, 0.4, 1.0,
-                          (v) => setState(() => _boardScale = v)),
-                      _DebugSlider('Board left', _boardLeft, 0, 60,
-                          (v) => setState(() => _boardLeft = v)),
-                      _DebugSlider('Card scale', _cardScale, 0.5, 3.0,
-                          (v) => setState(() => _cardScale = v)),
-                      _DebugSlider('Strip card W', _stripCardW, 40, 160,
-                          (v) => setState(() => _stripCardW = v)),
-                    ],
-                  ),
+                  // ── Debug panel (debug builds only) ──────────────────────
+                  if (kDebugMode)
+                    _DebugPanel(
+                      open: _debugOpen,
+                      onToggle: () => setState(() => _debugOpen = !_debugOpen),
+                      sliders: [
+                        _DebugSlider('Board scale', _boardScale, 0.4, 1.0,
+                            (v) => setState(() => _boardScale = v)),
+                        _DebugSlider('Board left', _boardLeft, 0, 60,
+                            (v) => setState(() => _boardLeft = v)),
+                        _DebugSlider('Card scale', _cardScale, 0.5, 3.0,
+                            (v) => setState(() => _cardScale = v)),
+                        _DebugSlider('Strip card W', _stripCardW, 40, 160,
+                            (v) => setState(() => _stripCardW = v)),
+                      ],
+                    ),
                 ],
               ),
             ),

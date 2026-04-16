@@ -69,4 +69,23 @@ abstract class UserDataRepository {
   bool loadTutorialDone();
 
   Future<void> saveTutorialDone(bool done);
+
+  // ── Profile ────────────────────────────────────────────────────────────────
+
+  /// Returns the player's chosen display name, or null if not set.
+  String? loadDisplayName();
+
+  Future<void> saveDisplayName(String name);
+
+  // ── Unlocks ────────────────────────────────────────────────────────────────
+
+  /// IDs of cards the player owns. Null = not yet persisted (use starter set).
+  Set<String>? loadUnlockedCardIds();
+
+  Future<void> saveUnlockedCardIds(Set<String> ids);
+
+  /// IDs of cosmetics the player owns. Null = not yet persisted (use defaults).
+  Set<String>? loadUnlockedCosmeticIds();
+
+  Future<void> saveUnlockedCosmeticIds(Set<String> ids);
 }
