@@ -13,7 +13,6 @@ import '../services/tutorial_bot.dart';
 // Colours
 // ---------------------------------------------------------------------------
 
-const _overlayBg = Color(0xCC000000);
 const _cardBg = Color(0xFF2B1810);
 const _gold = Color(0xFFFFD700);
 const _goldDim = Color(0xFF8B6914);
@@ -240,21 +239,23 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay> {
 
   Widget _buildPrompt(TutorialStep step, _StepContent content) {
     final isTap = content.tapToContinue;
-    return GestureDetector(
-      behavior: isTap ? HitTestBehavior.opaque : HitTestBehavior.translucent,
-      onTap: isTap ? () => _handleTap(step) : null,
-      child: Container(
-        color: isTap ? _overlayBg : Colors.transparent,
-        child: SafeArea(
-          child: Align(
-            alignment: content.anchor,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-              child: _PromptCard(
-                title: content.title,
-                body: content.body,
-                showTapHint: isTap,
-              ),
+    // Non-blocking: the tutorial card floats over the UI but does not capture
+    // pointer events outside of its own bounds. Users can still interact with
+    // the game (tap cards, pieces, buttons, etc.). Info steps advance via the
+    // "NEXT" button on the card itself; action steps advance automatically
+    // when the expected game action happens.
+    return IgnorePointer(
+      ignoring: false,
+      child: SafeArea(
+        child: Align(
+          alignment: content.anchor,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            child: _PromptCard(
+              title: content.title,
+              body: content.body,
+              showNext: isTap,
+              onNext: isTap ? () => _handleTap(step) : null,
             ),
           ),
         ),
@@ -298,28 +299,35 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay> {
 class _PromptCard extends StatelessWidget {
   final String title;
   final String body;
-  final bool showTapHint;
+  final bool showNext;
+  final VoidCallback? onNext;
 
   const _PromptCard({
     required this.title,
     required this.body,
-    this.showTapHint = true,
+    this.showNext = true,
+    this.onNext,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       constraints: const BoxConstraints(maxWidth: 340),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: _cardBg,
+        color: _cardBg.withAlpha(242), // slight transparency so UI shows through
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: _goldDim, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: _gold.withAlpha(30),
+            color: _gold.withAlpha(40),
             blurRadius: 16,
             spreadRadius: 2,
+          ),
+          const BoxShadow(
+            color: Colors.black54,
+            blurRadius: 10,
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -331,32 +339,52 @@ class _PromptCard extends StatelessWidget {
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: _gold,
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.bold,
               letterSpacing: 2,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
             body,
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: _textPrimary,
-              fontSize: 14,
-              height: 1.5,
+              fontSize: 13,
+              height: 1.45,
             ),
           ),
-          if (showTapHint) ...[
-            const SizedBox(height: 16),
+          const SizedBox(height: 14),
+          if (showNext && onNext != null)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: onNext,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _goldDim,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                  ),
+                ),
+                child: const Text('NEXT'),
+              ),
+            )
+          else
             const Text(
-              'TAP TO CONTINUE',
+              'WAITING FOR YOU…',
               style: TextStyle(
                 color: _textSecondary,
-                fontSize: 11,
+                fontSize: 10,
                 letterSpacing: 2,
               ),
             ),
-          ],
         ],
       ),
     );

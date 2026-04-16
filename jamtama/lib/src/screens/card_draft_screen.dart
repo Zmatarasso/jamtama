@@ -142,6 +142,62 @@ class _CardDraftScreenState extends ConsumerState<CardDraftScreen> {
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.white38, fontSize: 12),
           ),
+          const SizedBox(height: 4),
+          Builder(builder: (_) {
+            // Loser of last round goes first; Red goes first in round 1.
+            final firstPlayer = match.round?.winner == Player.red
+                ? Player.blue
+                : Player.red;
+            final label = firstPlayer == Player.red
+                ? 'Player 1 (Red) goes first'
+                : 'Player 2 (Blue) goes first';
+            final dot = firstPlayer == Player.red
+                ? const Color(0xFFDC143C)
+                : const Color(0xFF4169E1);
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: const TextStyle(color: Colors.white38, fontSize: 12),
+                ),
+              ],
+            );
+          }),
+
+          // Table card — the 5th card in the game, owned by neither player.
+          // It is seeded randomly at the start of round 1 and carried forward
+          // between rounds. Hidden on round 1 before any round has been played.
+          if (match.tableCard != null) ...[
+            const SizedBox(height: 20),
+            const Text(
+              'COMMUNITY CARD',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xFF8B6914),
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: SizedBox(
+                width: 76,
+                height: 100,
+                child: FittedBox(
+                  fit: BoxFit.contain,
+                  child: CardWidget(card: match.tableCard!),
+                ),
+              ),
+            ),
+          ],
 
           const Spacer(),
 

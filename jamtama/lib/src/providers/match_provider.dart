@@ -137,19 +137,25 @@ class MatchNotifier extends Notifier<MatchState> {
   // ---------------------------------------------------------------------------
 
   void _startRound() {
-    // Community card: prefer a card not held by either player.
-    final handIds = {
-      ...state.redHand.map((c) => c.id),
-      ...state.blueHand.map((c) => c.id),
-    };
-    final pool =
-        allCards.where((c) => !handIds.contains(c.id)).toList();
-    final communityPool = pool.isNotEmpty ? pool : List.of(allCards);
-    communityPool.shuffle(Random());
-    final community = communityPool.first;
+    // Community card: carry forward the match-level tableCard when available
+    // (rounds 2+). On round 1, pick randomly from cards not in either hand.
+    final CardDefinition community;
+    if (state.tableCard != null) {
+      community = state.tableCard!;
+    } else {
+      final handIds = {
+        ...state.redHand.map((c) => c.id),
+        ...state.blueHand.map((c) => c.id),
+      };
+      final pool = allCards.where((c) => !handIds.contains(c.id)).toList();
+      final communityPool = pool.isNotEmpty ? pool : List.of(allCards);
+      communityPool.shuffle(Random());
+      community = communityPool.first;
+    }
 
     state = state.copyWith(
       phase: MatchPhase.playing,
+      tableCard: community, // ensure match-level is in sync
       round: RoundState(
         roundNumber: state.currentRound,
         phase: RoundPhase.playing,
@@ -157,7 +163,10 @@ class MatchNotifier extends Notifier<MatchState> {
         redHand: List.of(state.redHand),
         blueHand: List.of(state.blueHand),
         communityCard: community,
-        currentTurn: Player.red,
+        // Loser of the previous round goes first. Round 1 defaults to Red.
+        currentTurn: state.round?.winner == Player.red
+            ? Player.blue
+            : Player.red,
       ),
     );
   }
@@ -276,6 +285,9 @@ class MatchNotifier extends Notifier<MatchState> {
     state = state.copyWith(
       // Match-level fields updated atomically together with round state.
       phase: isMatchOver ? MatchPhase.matchOver : state.phase,
+      // usedCard is now on the table; keep match-level tableCard in sync so
+      // it's available to display during the next draft phase.
+      tableCard: usedCard,
       redWins: newRedWins,
       blueWins: newBlueWins,
       currentRound: (winner != null && !isMatchOver)

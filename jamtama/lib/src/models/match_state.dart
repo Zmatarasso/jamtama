@@ -27,6 +27,12 @@ class MatchState {
   final List<CardDefinition> redHand;
   final List<CardDefinition> blueHand;
 
+  /// The card currently sitting on the table (owned by neither player).
+  /// Seeded randomly on round 1 and carried forward between rounds — each
+  /// move swaps the played card onto the table and takes the old table card
+  /// into the player's hand.
+  final CardDefinition? tableCard;
+
   final int redWins;
   final int blueWins;
   final int currentRound;
@@ -45,6 +51,7 @@ class MatchState {
     this.blueDrafted = const [],
     this.redHand = const [],
     this.blueHand = const [],
+    this.tableCard,
     this.redWins = 0,
     this.blueWins = 0,
     this.currentRound = 1,
@@ -63,6 +70,7 @@ class MatchState {
     List<CardDefinition>? blueDrafted,
     List<CardDefinition>? redHand,
     List<CardDefinition>? blueHand,
+    Object? tableCard = _s,
     int? redWins,
     int? blueWins,
     int? currentRound,
@@ -80,6 +88,7 @@ class MatchState {
       blueDrafted: blueDrafted ?? this.blueDrafted,
       redHand: redHand ?? this.redHand,
       blueHand: blueHand ?? this.blueHand,
+      tableCard: identical(tableCard, _s) ? this.tableCard : tableCard as CardDefinition?,
       redWins: redWins ?? this.redWins,
       blueWins: blueWins ?? this.blueWins,
       currentRound: currentRound ?? this.currentRound,
