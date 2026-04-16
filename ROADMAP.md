@@ -22,8 +22,8 @@ Items marked 🟡 are required for store submission. 🟠 are expected by player
 ## 🟡 Required for store submission
 
 ### Platform setup
-- [ ] Change package name from `com.example.jamtama` to your actual reverse-domain (e.g. `com.yourname.royalrumble`) in `android/app/build.gradle` and iOS `Info.plist`
-- [ ] Resolve "Royal Rumble" trademark conflict with WWE — pick a final app name before submission
+- [x] Change package name → `io.royalruckus.app` in `android/app/build.gradle.kts` and iOS `project.pbxproj`
+- [x] Resolve name conflict — app renamed to **Royal Ruckus**
 - [ ] Create app icon (all required sizes — iOS needs many variants; use a tool like AppIconMaker)
 - [ ] Create splash screen
 - [ ] iOS build setup — requires a Mac + Xcode; provisioning profile, App ID, signing certificates
@@ -37,8 +37,8 @@ Items marked 🟡 are required for store submission. 🟠 are expected by player
 - [ ] Support email or URL
 
 ### Code hygiene
-- [ ] Flag-gate the debug layout panel so it never appears in release builds (`kDebugMode` or a compile-time flag)
-- [ ] Bump `version` in `pubspec.yaml` to a real version number
+- [x] Flag-gate the debug layout panel so it never appears in release builds (`kDebugMode` or a compile-time flag)
+- [x] Bump `version` in `pubspec.yaml` to a real version number (0.1.0+1)
 - [x] Fix all tests — updated card names from animal→weapon theme; fixed `completeDraft` helper; 47/47 passing
 - [ ] Run `flutter build` for iOS and Android — fix any build errors
 
@@ -47,21 +47,21 @@ Items marked 🟡 are required for store submission. 🟠 are expected by player
 ## 🟠 Expected by players (missing = bad reviews)
 
 ### UX / Onboarding
-- [ ] How-to-play / tutorial — card move patterns are not obvious; at minimum an overlay explaining the grid on first launch
-- [ ] First-time user flow — app currently drops straight into a menu with no context
+- [x] How-to-play / tutorial — 18-step overlay, fires automatically on first "Find a Match"; bot plays opponent; resets from Options
+- [x] First-time user flow — tutorial handles first-time context; daily login bonus shown after tutorial completes
 - [ ] Display name entry — the text field in Options is a placeholder; make it actually save and show somewhere
 
 ### Polish
 - [ ] Card art — move-pattern grids are functional but not shippable; even simple illustrated weapon backgrounds per card would help
 - [ ] Menu screen visual polish — currently very plain
-- [ ] Wire volume sliders in Options to `AudioService` master/sfx/music levels
+- [x] Wire volume sliders in Options to `AudioService` master/sfx/music levels
 - [ ] Verify piece move animation looks good with current cosmetics (the "slide" effect)
 - [ ] Glitter drag effect TODO — currently not rendering during drag (noted in code); fix or remove
 
 ### Account / identity
-- [ ] Decide: fully offline (no accounts) OR guest mode + optional Firebase login
-- [ ] If offline: remove login/logout UI from Options or replace with a local profile name
-- [ ] If Firebase: implement Auth (email or anonymous → named), wire `UserDataRepository` to Firestore
+- [x] Decided: anonymous auth on first launch → optional email upgrade; Firebase Auth + Firestore wired up
+- [ ] Email upgrade UI — "Log In" button in Options currently shows a snackbar; wire to `FirebaseUserDataRepository.linkEmail()`
+- [ ] Google Sign-In — add as third auth option alongside email/password
 
 ---
 
@@ -69,7 +69,7 @@ Items marked 🟡 are required for store submission. 🟠 are expected by player
 
 - [ ] Online multiplayer (Firebase Realtime or Firestore turn-based)
 - [ ] AI opponent (single-player mode)
-- [ ] Card unlock / shop system (collection provider is already architected for it)
+- [x] Card unlock / shop system — random card purchase with 3D spin reveal; cosmetic purchases with sold stamp; coin economy (wallet, daily login bonus, win/loss rewards)
 - [ ] Additional cosmetics (more boards, pieces, thrones, effects)
 - [ ] Leaderboard / match history
 - [ ] Landscape support
