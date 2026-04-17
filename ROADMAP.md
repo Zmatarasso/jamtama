@@ -12,7 +12,7 @@ Items marked 🟡 are required for store submission. 🟠 are expected by player
 - [x] Verify win conditions end-to-end — throne capture AND master capture both trigger round-over dialog correctly in all cases
 - [x] Draft phase (`CardDraftScreen`) — works; stale-selection bug fixed; round 3 correctly draws 2 cards when only 2 remain
 - [x] Round-over → rematch / return-to-menu flow — state update made atomic; dialog fires exactly once via `ref.listen`; startNextRound returns to draft correctly
-- [ ] Hot-seat hand-hide between turns — treating as public-info board game; no pass-device screen needed
+- [x] Hot-seat hand-hide between turns — treating as public-info board game; no pass-device screen needed
 
 ### Audio
 - [x] Audio code complete — `SoundPack` model consolidates all 7 sounds; `AudioService` respects volume sliders; all call sites wired (card select, piece select, card draft, move, capture, round/match win); drop files in `assets/audio/packs/default/` and uncomment paths in `lib/src/cosmetics/data/sound_packs.dart`
@@ -24,8 +24,8 @@ Items marked 🟡 are required for store submission. 🟠 are expected by player
 ### Platform setup
 - [x] Change package name → `io.royalruckus.app` in `android/app/build.gradle.kts` and iOS `project.pbxproj`
 - [x] Resolve name conflict — app renamed to **Royal Ruckus**
-- [ ] Create app icon (all required sizes — iOS needs many variants; use a tool like AppIconMaker)
-- [ ] Create splash screen
+- [x] Create app icon — placeholder "R vs R" wrestling-ring art; `tool/gen_branding.py` generates the source PNGs, `flutter_launcher_icons` generates platform variants
+- [x] Create splash screen — generated via `flutter_native_splash` from `assets/branding/splash.png`
 - [ ] iOS build setup — requires a Mac + Xcode; provisioning profile, App ID, signing certificates
 - [ ] Android keystore + signing config in `build.gradle`
 
@@ -56,7 +56,7 @@ Items marked 🟡 are required for store submission. 🟠 are expected by player
 - [ ] Menu screen visual polish — currently very plain
 - [x] Wire volume sliders in Options to `AudioService` master/sfx/music levels
 - [ ] Verify piece move animation looks good with current cosmetics (the "slide" effect)
-- [ ] Glitter drag effect TODO — currently not rendering during drag (noted in code); fix or remove
+- [x] Glitter drag effect — orbit particles now visible during drag (z-order and orbit radius fixed)
 
 ### Account / identity
 - [x] Decided: anonymous auth on first launch → optional email upgrade; Firebase Auth + Firestore wired up
