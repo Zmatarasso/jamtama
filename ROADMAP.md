@@ -24,8 +24,8 @@ Items marked 🟡 are required for store submission. 🟠 are expected by player
 ### Platform setup
 - [x] Change package name → `io.royalruckus.app` in `android/app/build.gradle.kts` and iOS `project.pbxproj`
 - [x] Resolve name conflict — app renamed to **Royal Ruckus**
-- [ ] Create app icon (all required sizes — iOS needs many variants; use a tool like AppIconMaker)
-- [ ] Create splash screen
+- [x] Create app icon — placeholder "R vs R" wrestling-ring art; `tool/gen_branding.py` generates the source PNGs, `flutter_launcher_icons` generates platform variants
+- [x] Create splash screen — generated via `flutter_native_splash` from `assets/branding/splash.png`
 - [ ] iOS build setup — requires a Mac + Xcode; provisioning profile, App ID, signing certificates
 - [ ] Android keystore + signing config in `build.gradle`
 

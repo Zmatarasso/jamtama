@@ -53,6 +53,36 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
 
+  # Generates platform-specific app icons from assets/branding/icon.png.
+  # Re-run with `dart run flutter_launcher_icons` after changing the source.
+  flutter_launcher_icons: ^0.14.0
+
+  # Generates platform-specific splash screens from assets/branding/splash.png.
+  # Re-run with `dart run flutter_native_splash:create` after changing config.
+  flutter_native_splash: ^2.4.0
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/branding/icon.png"
+  remove_alpha_ios: true
+  min_sdk_android: 21
+  adaptive_icon_background: "#180E0A"
+  adaptive_icon_foreground: "assets/branding/icon_foreground.png"
+  web:
+    generate: true
+    image_path: "assets/branding/icon.png"
+    background_color: "#180E0A"
+    theme_color: "#D4AF37"
+
+flutter_native_splash:
+  color: "#180E0A"
+  image: "assets/branding/splash.png"
+  android_12:
+    color: "#180E0A"
+    image: "assets/branding/icon_foreground.png"
+  web: false
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
