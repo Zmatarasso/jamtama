@@ -35,7 +35,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   // ── Debug layout knobs ──────────────────────────────────────────────────
   double _boardScale  = 0.95; // fraction of min(w,h) the board occupies
   double _boardLeft   = 12.0; // px from left edge
-  double _cardScale   = 1.8;  // fan hand card scale (1.0 = native 76×100)
+  // Default matches strip card width (112 px) so hand cards render at the
+  // same size as the "YOUR PLAY / TABLE" strip below the board. Hovering
+  // temporarily grows the card — see [_HandCardState].
+  double _cardScale   = 1.47; // fan hand card scale (1.0 = native 76×100)
   double _stripCardW  = 112.0; // card strip card width (px); height locked to w×100/76
   bool   _debugOpen   = true;
 
@@ -43,6 +46,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   // These are not setState'd because they're cheap positional bookmarks —
   // the animation widgets themselves manage their own animation controllers.
   double _lastBoardSize = 200.0;
+  double _lastBoardTop  = 0.0; // board's top in the Stack's coord space
   Size   _lastBoardAreaSize = const Size(300, 500);
 
   _PieceMoveAnim?  _pieceMove;
@@ -75,11 +79,28 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     children: [
                       _ScoreBar(match: match),
 
-                      // Board area — hands overlay from top and bottom edges.
+                      // Blue's hand — at the top, rotated 180° so the cards
+                      // face the opponent. A proper row (not an overlay) so
+                      // it does not cover the board.
+                      RotatedBox(
+                        quarterTurns: 2,
+                        child: _PlayerArea(
+                          player: Player.blue,
+                          round: round,
+                          cardScale: _cardScale,
+                          isActive: round.currentTurn == Player.blue &&
+                              round.phase == RoundPhase.playing,
+                        ),
+                      ),
+
+                      // Board area — fills the remaining vertical space
+                      // between Blue's hand and the CardStrip. The board is
+                      // bottom-anchored inside this Stack so it visually
+                      // "sits on" the CardStrip below.
                       Expanded(
                         child: Stack(
+                          clipBehavior: Clip.none,
                           children: [
-                            // Board — left-pinned, top-aligned (up against Blue's area).
                             LayoutBuilder(
                               builder: (context, constraints) {
                                 final boardSize =
@@ -91,9 +112,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                   constraints.maxWidth,
                                   constraints.maxHeight,
                                 );
+                                _lastBoardTop = constraints.maxHeight - boardSize;
                                 return Positioned(
                                   left: _boardLeft,
-                                  top: 0,
+                                  top: _lastBoardTop,
                                   width: boardSize,
                                   height: boardSize,
                                   child: Padding(
@@ -106,33 +128,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                   ),
                                 );
                               },
-                            ),
-
-                            // Blue's hand overlaid at top.
-                            Positioned(
-                              top: 0, left: 0, right: 0,
-                              child: RotatedBox(
-                                quarterTurns: 2,
-                                child: _PlayerArea(
-                                  player: Player.blue,
-                                  round: round,
-                                  cardScale: _cardScale,
-                                  isActive: round.currentTurn == Player.blue &&
-                                      round.phase == RoundPhase.playing,
-                                ),
-                              ),
-                            ),
-
-                            // Red's hand overlaid at bottom.
-                            Positioned(
-                              bottom: 0, left: 0, right: 0,
-                              child: _PlayerArea(
-                                player: Player.red,
-                                round: round,
-                                cardScale: _cardScale,
-                                isActive: round.currentTurn == Player.red &&
-                                    round.phase == RoundPhase.playing,
-                              ),
                             ),
 
                             // ── Animation overlays ──────────────────────────
@@ -187,9 +182,20 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                         ),
                       ),
 
-                      // Card strip — sits BELOW the board, ABOVE Red's hand overlay.
-                      // Completely independent of board sizing.
+                      // Card strip — glued directly to the bottom of the
+                      // board area (which is bottom-anchored in the Expanded
+                      // above), giving the visual effect of a "shelf" under
+                      // the board.
                       _CardStrip(round: round, cardW: _stripCardW),
+
+                      // Red's hand — at the bottom, below the CardStrip.
+                      _PlayerArea(
+                        player: Player.red,
+                        round: round,
+                        cardScale: _cardScale,
+                        isActive: round.currentTurn == Player.red &&
+                            round.phase == RoundPhase.playing,
+                      ),
                     ],
                   ),
 
@@ -233,9 +239,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     final cellSize = (_lastBoardSize - 16) / 5;
 
     // Centre of a board cell in the Stack's coordinate space.
+    // The board is bottom-anchored in its Stack, so y starts at _lastBoardTop.
     Offset cellCenter(int row, int col) => Offset(
       _boardLeft + 8 + col * cellSize + cellSize / 2,
-      8          + (4 - row) * cellSize + cellSize / 2,
+      _lastBoardTop + 8 + (4 - row) * cellSize + cellSize / 2,
     );
 
     final startOff  = cellCenter(fromRow, fromCol);
@@ -249,16 +256,22 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         ? const Color(0xFF4169E1)
         : const Color(0xFFDC143C);
 
-    // Card flies from the active player's hand toward the board centre.
+    // Card flies from just outside the board area (where the player's hand
+    // visually sits) toward the board centre. Hands now live outside the
+    // Stack, so we anchor to the Stack edge (Clip.none lets this overflow).
     _CardPlayAnim? cardPlayAnim;
     if (pendingCard != null) {
       final isRed  = pieceColor == const Color(0xFFDC143C);
       final handY  = isRed
-          ? _lastBoardAreaSize.height - 60.0   // Red's hand is at the bottom
-          : 60.0;                               // Blue's is at the top (rotated)
+          ? _lastBoardAreaSize.height + 40.0  // below the Stack (red hand)
+          : -40.0;                             // above the Stack (blue hand)
+      final boardCenter = Offset(
+        _boardLeft + _lastBoardSize / 2,
+        _lastBoardTop + _lastBoardSize / 2,
+      );
       cardPlayAnim = _CardPlayAnim(
         start:    Offset(_lastBoardAreaSize.width / 2, handY),
-        end:      Offset(_boardLeft + _lastBoardSize / 2, _lastBoardSize / 2),
+        end:      boardCenter,
         card:     pendingCard,
         cardSize: const Size(50, 70),
       );
@@ -903,10 +916,16 @@ class _GlitterPainter extends CustomPainter {
 // Glitter drag feedback — orbiting sparkles while holding a piece
 // ---------------------------------------------------------------------------
 
-// TODO(fix): _GlitterFeedbackWidget orbit particles are not rendering during
-// drag. Likely cause: the Draggable feedback widget is painted in a separate
-// overlay entry and the AnimationController may not be ticking, or the
-// Positioned overflow is being clipped by the overlay. Needs investigation.
+// Glitter orbit particles rendered around a dragged piece.
+//
+// Fix notes (was blank during drag):
+//   Bug 1 — z-order: particles were drawn BEFORE the piece widget, so the
+//            piece painted on top and hid everything inside its ~38 px radius.
+//            Fixed by drawing particles AFTER the piece (on top).
+//   Bug 2 — orbit radius: dist = sin(t)*30 peaks at 30 px which is smaller
+//            than the piece radius (~38 px), keeping all particles invisible
+//            behind the piece. Fixed: orbit now ranges 28–48 px so particles
+//            breach the piece rim and are clearly visible.
 class _GlitterFeedbackWidget extends StatefulWidget {
   final Widget child;
   const _GlitterFeedbackWidget({required this.child});
@@ -943,19 +962,22 @@ class _GlitterFeedbackWidgetState extends State<_GlitterFeedbackWidget>
         clipBehavior: Clip.none,
         alignment: Alignment.center,
         children: [
-          // Particles overflow the piece bounds — 26px halo around it
+          // 1 — piece (behind particles)
+          child!,
+          // 2 — orbit particles drawn ON TOP so they're visible at the rim.
+          //     Positioned halo is 40 px on each side; particles orbit
+          //     28–48 px from the piece centre so they breach the edge.
           Positioned(
-            left: -26,
-            right: -26,
-            top: -26,
-            bottom: -26,
+            left: -40,
+            right: -40,
+            top: -40,
+            bottom: -40,
             child: IgnorePointer(
               child: CustomPaint(
                 painter: _GlitterOrbitPainter(phase: _ctrl.value),
               ),
             ),
           ),
-          child!,
         ],
       ),
       child: widget.child,
@@ -991,12 +1013,12 @@ class _GlitterOrbitPainter extends CustomPainter {
       final angle =
           (i * (2 * pi / _count)) + phase * pi * 0.6;
 
-      // Expand outward then fade — max ~30px from edge of piece.
-      final dist = sin(pPhase * pi) * 30.0;
+      // Orbit 28–48 px from piece centre so particles breach the rim (~38 px).
+      // They emerge from just inside the edge and arc out into the clear halo.
+      final dist = 28.0 + sin(pPhase * pi) * 20.0;
 
-      // 85% max alpha of landing burst.
-      final alpha = (sin(pPhase * pi) * 217).clamp(0, 255).toInt();
-      final radius = 1.2 + sin(pPhase * pi) * 2.4;
+      final alpha = (sin(pPhase * pi) * 230).clamp(0, 255).toInt();
+      final radius = 2.0 + sin(pPhase * pi) * 2.8; // slightly larger for visibility
 
       if (alpha <= 0) continue;
 
@@ -1822,15 +1844,20 @@ class _HandCard extends StatefulWidget {
 class _HandCardState extends State<_HandCard> {
   bool _hovering = false;
 
+  /// How much bigger the card gets when hovered, relative to its base scale.
+  /// 1.0 = no grow, 1.4 = 40 % larger than the strip card size.
+  static const double _hoverGrow = 1.4;
+
   @override
   Widget build(BuildContext context) {
     // isPending: card is "leaving" the hand toward the strip below — slide DOWN.
-    // hover:     card lifts UP to be readable.
-    final translateY = widget.isPending ? 20.0 : (_hovering ? -16.0 : 0.0);
+    // hover:     card lifts UP AND grows so it's easy to read.
+    final translateY = widget.isPending ? 20.0 : (_hovering ? -20.0 : 0.0);
     final opacity    = widget.isPending ? 0.15 : 1.0;
+    final effective  = widget.scale * (_hovering ? _hoverGrow : 1.0);
     final duration   = widget.isPending
         ? const Duration(milliseconds: 260)
-        : const Duration(milliseconds: 120);
+        : const Duration(milliseconds: 150);
 
     return MouseRegion(
       cursor: widget.onTap != null
@@ -1845,9 +1872,12 @@ class _HandCardState extends State<_HandCard> {
           opacity: opacity,
           child: AnimatedContainer(
             duration: duration,
+            curve: Curves.easeOutCubic,
             transform: Matrix4.translationValues(0, translateY, 0),
-            child: Transform.scale(
-              scale: widget.scale,
+            child: AnimatedScale(
+              duration: duration,
+              curve: Curves.easeOutCubic,
+              scale: effective,
               alignment: Alignment.bottomCenter,
               child: CardWidget(
                 card: widget.card,
