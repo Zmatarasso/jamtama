@@ -49,19 +49,22 @@ Items marked 🟡 are required for store submission. 🟠 are expected by player
 ### UX / Onboarding
 - [x] How-to-play / tutorial — 18-step overlay, fires automatically on first "Find a Match"; bot plays opponent; resets from Options
 - [x] First-time user flow — tutorial handles first-time context; daily login bonus shown after tutorial completes
-- [ ] Display name entry — the text field in Options is a placeholder; make it actually save and show somewhere
+- [x] Display name entry — saves via UserDataRepository; shown in Options screen
 
 ### Polish
 - [ ] Card art — move-pattern grids are functional but not shippable; even simple illustrated weapon backgrounds per card would help
 - [ ] Menu screen visual polish — currently very plain
 - [x] Wire volume sliders in Options to `AudioService` master/sfx/music levels
-- [ ] Verify piece move animation looks good with current cosmetics (the "slide" effect)
+- [x] Verify piece move animation looks good with current cosmetics (the "slide" effect)
 - [x] Glitter drag effect — orbit particles now visible during drag (z-order and orbit radius fixed)
 
 ### Account / identity
 - [x] Decided: anonymous auth on first launch → optional email upgrade; Firebase Auth + Firestore wired up
-- [ ] Email upgrade UI — "Log In" button in Options currently shows a snackbar; wire to `FirebaseUserDataRepository.linkEmail()`
+- [x] Email upgrade UI — "Create Account" / "Sign In" buttons in Options open an auth dialog that calls `FirebaseUserDataRepository.linkEmail()` / `signInWithEmail()`
 - [ ] Google Sign-In — add as third auth option alongside email/password
+
+### Cosmetics / Persistence
+- [x] Cosmetic loadout persists between restarts — SharedPreferences (local) + Firestore (cloud) via UserDataRepository; verified working on web
 
 ---
 
