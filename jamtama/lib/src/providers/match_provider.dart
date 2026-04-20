@@ -23,7 +23,10 @@ class MatchNotifier extends Notifier<MatchState> {
       );
 
   void startLocalMatch() {
-    state = state.copyWith(phase: MatchPhase.deckSelection);
+    state = state.copyWith(
+      phase: MatchPhase.deckSelection,
+      gameMode: GameMode.local,
+    );
   }
 
   /// Skips deck selection and drafting — jumps straight into a playable round
@@ -39,6 +42,7 @@ class MatchNotifier extends Notifier<MatchState> {
       blueRemaining: blueCards.skip(2).toList(),
       redHand: redCards.take(2).toList(),
       blueHand: blueCards.take(2).toList(),
+      gameMode: GameMode.ai,
       phase: MatchPhase.playing,
     );
     _startRound();
@@ -107,7 +111,6 @@ class MatchNotifier extends Notifier<MatchState> {
         drafted.firstWhereOrNull((c) => !selected.contains(c));
 
     if (player == Player.red) {
-      // Remove all drafted cards from remaining, then put the returned one back.
       final newRemaining = [
         ...state.redRemaining.where((c) => !state.redDrafted.contains(c)),
         if (returned != null) returned,
@@ -116,8 +119,15 @@ class MatchNotifier extends Notifier<MatchState> {
         redRemaining: newRemaining,
         redHand: selected,
       );
-      // Now draw for blue.
-      _drawFor(Player.blue);
+      if (state.gameMode != GameMode.local) {
+        // AI / net: auto-confirm Blue's draft immediately.
+        // The draftingBlue phase is never entered — no draft screen shown.
+        _drawFor(Player.blue);
+        _autoConfirmBlue();
+      } else {
+        // Local 2-player: show the draft screen for blue.
+        _drawFor(Player.blue);
+      }
     } else {
       final newRemaining = [
         ...state.blueRemaining.where((c) => !state.blueDrafted.contains(c)),
@@ -130,6 +140,25 @@ class MatchNotifier extends Notifier<MatchState> {
       );
       _startRound();
     }
+  }
+
+  /// Randomly pick 2 of blue's drafted cards and start the round.
+  /// Called for [GameMode.ai] and [GameMode.net] — never shows the draft screen for Blue.
+  void _autoConfirmBlue() {
+    final drawn = state.blueDrafted;
+    final shuffled = List.of(drawn)..shuffle(Random());
+    final pick = shuffled.take(2).toList();
+    final returned = drawn.firstWhereOrNull((c) => !pick.contains(c));
+    final newRemaining = [
+      ...state.blueRemaining.where((c) => !drawn.contains(c)),
+      if (returned != null) returned,
+    ];
+    state = state.copyWith(
+      blueRemaining: newRemaining,
+      blueHand: pick,
+      phase: MatchPhase.playing,
+    );
+    _startRound();
   }
 
   // ---------------------------------------------------------------------------

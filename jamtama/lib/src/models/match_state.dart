@@ -4,6 +4,15 @@ import 'round_state.dart';
 
 enum MatchPhase { menu, deckSelection, draftingRed, draftingBlue, playing, matchOver }
 
+/// Whether the match has one human player (tutorial, net play) or two
+/// (local hot-seat).
+///
+/// * [local] — two humans on the same device; Blue draft is shown.
+/// * [ai]    — one human vs. computer; Blue draft is skipped, bot plays Blue.
+/// * [net]   — one human vs. remote opponent; Blue draft is skipped, moves
+///             come from the network layer (not yet implemented).
+enum GameMode { local, ai, net }
+
 const _s = Object();
 
 class MatchState {
@@ -38,9 +47,11 @@ class MatchState {
   final int currentRound;
 
   final RoundState? round;
+  final GameMode gameMode;
 
   const MatchState({
     required this.phase,
+    this.gameMode = GameMode.local,
     required this.redDeck,
     required this.blueDeck,
     this.redDeckId,
@@ -60,6 +71,7 @@ class MatchState {
 
   MatchState copyWith({
     MatchPhase? phase,
+    GameMode? gameMode,
     Deck? redDeck,
     Deck? blueDeck,
     Object? redDeckId = _s,
@@ -78,6 +90,7 @@ class MatchState {
   }) {
     return MatchState(
       phase: phase ?? this.phase,
+      gameMode: gameMode ?? this.gameMode,
       redDeck: redDeck ?? this.redDeck,
       blueDeck: blueDeck ?? this.blueDeck,
       redDeckId: identical(redDeckId, _s) ? this.redDeckId : redDeckId as String?,

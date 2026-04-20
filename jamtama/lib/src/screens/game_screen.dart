@@ -648,6 +648,48 @@ class _CellState extends ConsumerState<_Cell>
 
   void _triggerGlitter() => _glitterAnim.forward(from: 0);
 
+  /// Executes a move into this cell — shared by drag-drop AND tap-to-move.
+  /// Caller must have already verified the move is legal (cell is in
+  /// [RoundState.validMoves]).
+  void _executeMoveIntoThisCell() {
+    final liveRound = ref.read(matchProvider).round;
+    if (liveRound == null) return;
+    final fromPiece = liveRound.selectedPiece;
+    final pendingCard = liveRound.pendingCard;
+    final targetPiece = liveRound.pieces.firstWhereOrNull(
+        (p) => p.row == widget.row && p.col == widget.col);
+    final isCapture =
+        targetPiece != null && targetPiece.player != liveRound.currentTurn;
+    final capturedKing =
+        isCapture && targetPiece.type == PieceType.master;
+
+    final audio = ref.read(audioServiceProvider);
+    final loadout = ref.read(cosmeticLoadoutProvider);
+    if (isCapture) {
+      audio.playCapture(loadout.soundPack);
+    } else {
+      audio.playMove(loadout.soundPack);
+    }
+    if (loadout.moveEffect.type == MoveEffectType.glitter) _triggerGlitter();
+
+    ref
+        .read(matchProvider.notifier)
+        .executeMove(row: widget.row, col: widget.col);
+
+    if (fromPiece != null) {
+      final pieceColor = fromPiece.player == Player.red
+          ? const Color(0xFFDC143C)
+          : const Color(0xFF4169E1);
+      widget.onMoveExecuted?.call(
+        fromPiece.row, fromPiece.col,
+        widget.row, widget.col,
+        pendingCard,
+        pieceColor,
+        capturedKing,
+      );
+    }
+  }
+
   Color _baseColor(bool isTemple) {
     if (isTemple) return widget.board.templeHighlightColor.withAlpha(80);
     return ((widget.row + widget.col) % 2 == 0)
@@ -670,44 +712,7 @@ class _CellState extends ConsumerState<_Cell>
     return DragTarget<Piece>(
       onWillAcceptWithDetails: (_) =>
           ref.read(matchProvider).round?.validMoves.contains(pos) ?? false,
-      onAcceptWithDetails: (_) {
-        final liveRound  = ref.read(matchProvider).round;
-        final fromPiece  = liveRound?.selectedPiece;
-        final pendingCard = liveRound?.pendingCard;
-        final targetPiece = liveRound?.pieces.firstWhereOrNull(
-            (p) => p.row == widget.row && p.col == widget.col);
-        final isCapture = targetPiece != null &&
-            targetPiece.player != liveRound?.currentTurn;
-        final capturedKing =
-            isCapture && targetPiece.type == PieceType.master;
-
-        final audio   = ref.read(audioServiceProvider);
-        final loadout = ref.read(cosmeticLoadoutProvider);
-        if (isCapture) {
-          audio.playCapture(loadout.soundPack);
-        } else {
-          audio.playMove(loadout.soundPack);
-        }
-        if (loadout.moveEffect.type == MoveEffectType.glitter) _triggerGlitter();
-
-        ref
-            .read(matchProvider.notifier)
-            .executeMove(row: widget.row, col: widget.col);
-
-        // Fire animation callback with pre-move context.
-        if (fromPiece != null) {
-          final pieceColor = fromPiece.player == Player.red
-              ? const Color(0xFFDC143C)
-              : const Color(0xFF4169E1);
-          widget.onMoveExecuted?.call(
-            fromPiece.row, fromPiece.col,
-            widget.row, widget.col,
-            pendingCard,
-            pieceColor,
-            capturedKing,
-          );
-        }
-      },
+      onAcceptWithDetails: (_) => _executeMoveIntoThisCell(),
       builder: (context, candidates, _) {
         final isHovering = candidates.isNotEmpty;
         final style = widget.board.tileStyle;
@@ -719,7 +724,20 @@ class _CellState extends ConsumerState<_Cell>
         Color bg = tileBase;
         if (isHovering && !isPainted) bg = widget.board.hoverColor;
 
-        return AnimatedContainer(
+        // Tap-to-move: tap a highlighted destination square (empty OR enemy
+        // capture) to move the currently-selected piece there. Own-piece taps
+        // are absorbed by the inner GestureDetector in [_buildPieceSlot] before
+        // reaching this one (Draggable child sits in front).
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            final live = ref.read(matchProvider).round;
+            if (live == null) return;
+            if (!live.validMoves.contains(pos)) return;
+            if (live.selectedPiece == null || live.pendingCard == null) return;
+            _executeMoveIntoThisCell();
+          },
+          child: AnimatedContainer(
           duration: const Duration(milliseconds: 100),
           decoration: BoxDecoration(
             color: isPainted ? Colors.transparent : bg,
@@ -791,6 +809,7 @@ class _CellState extends ConsumerState<_Cell>
                 },
               ),
             ],
+          ),
           ),
         );
       },

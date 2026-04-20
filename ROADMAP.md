@@ -47,7 +47,8 @@ Items marked 🟡 are required for store submission. 🟠 are expected by player
 ## 🟠 Expected by players (missing = bad reviews)
 
 ### UX / Onboarding
-- [x] How-to-play / tutorial — 18-step overlay, fires automatically on first "Find a Match"; bot plays opponent; resets from Options
+- [x] How-to-play / tutorial — step overlay, fires automatically on first "Find a Match"; bot plays opponent; resets from Options
+- [ ] Tutorial modal precision — currently all in-game modals are anchored to the play-bar strip as a placeholder; replace with contextual annotations (arrow tooltips, highlights) positioned next to the specific piece/card/square being described
 - [x] First-time user flow — tutorial handles first-time context; daily login bonus shown after tutorial completes
 - [x] Display name entry — saves via UserDataRepository; shown in Options screen
 

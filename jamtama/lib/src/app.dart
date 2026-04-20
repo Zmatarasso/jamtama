@@ -11,6 +11,7 @@ import 'screens/deck_selection_screen.dart';
 import 'screens/game_screen.dart';
 import 'screens/menu_screen.dart';
 import 'services/audio_service.dart';
+import 'widgets/bot_player.dart';
 import 'widgets/tutorial_overlay.dart';
 
 class JamtamaApp extends StatelessWidget {
@@ -74,14 +75,19 @@ class _RootRouter extends ConsumerWidget {
     });
 
     final screen = switch (match.phase) {
-      MatchPhase.menu => const MenuScreen(),
+      MatchPhase.menu       => const MenuScreen(),
       MatchPhase.deckSelection => const DeckSelectionScreen(),
-      MatchPhase.draftingRed ||
+      MatchPhase.draftingRed   => const CardDraftScreen(),
+      // In non-local modes Blue is always automated — _autoConfirmBlue() in the
+      // provider prevents draftingBlue from ever being entered, but guard here
+      // defensively so we never show a Blue draft screen in AI / net games.
       MatchPhase.draftingBlue =>
-        const CardDraftScreen(),
+        match.gameMode != GameMode.local
+            ? const GameScreen()
+            : const CardDraftScreen(),
       MatchPhase.playing || MatchPhase.matchOver => const GameScreen(),
     };
 
-    return TutorialOverlay(child: screen);
+    return BotPlayer(child: TutorialOverlay(child: screen));
   }
 }
