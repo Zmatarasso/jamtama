@@ -47,7 +47,7 @@ Items marked 🟡 are required for store submission. 🟠 are expected by player
 ## 🟠 Expected by players (missing = bad reviews)
 
 ### UX / Onboarding
-- [x] How-to-play / tutorial — step overlay, fires automatically on first "Find a Match"; bot plays opponent; resets from Options
+- [x] How-to-play / tutorial — step overlay, fires automatically on first "Find a Match"; bot plays opponent across all rounds (not just round 1); tutorial completion saves correctly; resets from Options
 - [ ] Tutorial modal precision — currently all in-game modals are anchored to the play-bar strip as a placeholder; replace with contextual annotations (arrow tooltips, highlights) positioned next to the specific piece/card/square being described
 - [x] First-time user flow — tutorial handles first-time context; daily login bonus shown after tutorial completes
 - [x] Display name entry — saves via UserDataRepository; shown in Options screen
@@ -72,7 +72,7 @@ Items marked 🟡 are required for store submission. 🟠 are expected by player
 ## 🟢 Post-launch / v1.1
 
 - [ ] Online multiplayer (Firebase Realtime or Firestore turn-based)
-- [ ] AI opponent (single-player mode)
+- [x] AI opponent — `BotPlayer` widget drives Blue automatically in `GameMode.ai`; active across all rounds (not just tutorial); `GameMode` split into `local` / `ai` / `net` for clean future net-play support
 - [x] Card unlock / shop system — random card purchase with 3D spin reveal; cosmetic purchases with sold stamp; coin economy (wallet, daily login bonus, win/loss rewards)
 - [ ] Additional cosmetics (more boards, pieces, thrones, effects)
 - [ ] Leaderboard / match history
