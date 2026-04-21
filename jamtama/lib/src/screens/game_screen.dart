@@ -38,8 +38,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   // Default matches strip card width (112 px) so hand cards render at the
   // same size as the "YOUR PLAY / TABLE" strip below the board. Hovering
   // temporarily grows the card — see [_HandCardState].
-  double _cardScale   = 1.47; // fan hand card scale (1.0 = native 76×100)
-  double _stripCardW  = 112.0; // card strip card width (px); height locked to w×100/76
+  double _cardScale   = 1.0;  // fan hand card scale (1.0 = native 76×100)
+  double _stripCardW  = 70.0; // card strip card width (px); height locked to w×100/76
   bool   _debugOpen   = true;
 
   // ── Animation overlay state ──────────────────────────────────────────────

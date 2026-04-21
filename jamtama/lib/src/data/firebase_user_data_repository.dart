@@ -29,15 +29,20 @@ class FirebaseUserDataRepository implements UserDataRepository {
   late final FirebaseAuth _auth;
   late final FirebaseFirestore _db;
 
+  // When true, a deliberate sign-in / sign-up is in progress and any null
+  // emission from authStateChanges is part of Firebase's session swap, not
+  // an actual sign-out — suppress the anonymous fallback to avoid racing
+  // against the in-flight credential sign-in.
+  bool _signingIn = false;
+
   // ── Auth ───────────────────────────────────────────────────────────────────
 
   void _initAuth() {
     _auth.authStateChanges().listen((user) async {
       if (user == null) {
-        // No user — sign in anonymously.
+        if (_signingIn) return;
         await _auth.signInAnonymously();
       } else {
-        // Signed in — pull cloud data into local cache.
         await pullFromCloud();
       }
     });
@@ -87,12 +92,6 @@ class FirebaseUserDataRepository implements UserDataRepository {
         await local.saveTutorialDone(tutorialDone);
       }
 
-      // Display name
-      final displayName = data['displayName'] as String?;
-      if (displayName != null) {
-        await local.saveDisplayName(displayName);
-      }
-
       // Unlocked cards
       final cardIds = data['unlockedCardIds'];
       if (cardIds is List) {
@@ -125,6 +124,7 @@ class FirebaseUserDataRepository implements UserDataRepository {
   /// Link an email + password to the current anonymous account.
   /// Returns null on success, or an error message string on failure.
   Future<String?> linkEmail(String email, String password) async {
+    _signingIn = true;
     try {
       final credential = EmailAuthProvider.credential(
         email: email,
@@ -134,15 +134,31 @@ class FirebaseUserDataRepository implements UserDataRepository {
       return null;
     } on FirebaseAuthException catch (e) {
       return e.message ?? 'An error occurred';
+    } finally {
+      _signingIn = false;
     }
   }
 
   /// Sign in with email + password (for returning users on a new device).
   /// Returns null on success, or an error message string on failure.
   Future<String?> signInWithEmail(String email, String password) async {
+    _signingIn = true;
     try {
       await _auth.signInWithEmailAndPassword(
           email: email, password: password);
+      return null;
+    } on FirebaseAuthException catch (e) {
+      return e.message ?? 'An error occurred';
+    } finally {
+      _signingIn = false;
+    }
+  }
+
+  /// Send a password reset email. Returns null on success, or an error
+  /// message string on failure.
+  Future<String?> sendPasswordReset(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
       return null;
     } on FirebaseAuthException catch (e) {
       return e.message ?? 'An error occurred';
@@ -192,17 +208,6 @@ class FirebaseUserDataRepository implements UserDataRepository {
   Future<void> saveTutorialDone(bool done) async {
     await local.saveTutorialDone(done);
     _pushToCloud({'tutorialDone': done});
-  }
-
-  @override
-  String? loadDisplayName() => local.loadDisplayName();
-
-  @override
-  Future<void> saveDisplayName(String name) async {
-    await local.saveDisplayName(name);
-    // Also update the Firebase Auth profile so it shows in the console.
-    await _auth.currentUser?.updateDisplayName(name);
-    _pushToCloud({'displayName': name});
   }
 
   @override

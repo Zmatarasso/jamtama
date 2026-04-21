@@ -6,6 +6,7 @@ import '../models/board_cosmetic.dart';
 import '../models/card_back_cosmetic.dart';
 import '../models/master_piece_cosmetic.dart';
 import '../models/move_effect_cosmetic.dart';
+import '../models/profile_picture_cosmetic.dart';
 import '../models/scenery_cosmetic.dart';
 import '../models/sound_pack.dart';
 import '../models/student_piece_cosmetic.dart';
@@ -17,6 +18,7 @@ import '../models/throne_cosmetic.dart';
 /// purchase mechanics are added, make this a [NotifierProvider] and append
 /// items to the appropriate list.
 class CosmeticCollection {
+  final List<ProfilePictureCosmetic> profilePictures;
   final List<MasterPieceCosmetic> masterPieces;
   final List<StudentPieceCosmetic> studentPieces;
   final List<ThroneCosmetic> thrones;
@@ -27,6 +29,7 @@ class CosmeticCollection {
   final List<SoundPack> soundPacks;
 
   const CosmeticCollection({
+    required this.profilePictures,
     required this.masterPieces,
     required this.studentPieces,
     required this.thrones,
@@ -40,6 +43,12 @@ class CosmeticCollection {
 
 final cosmeticCollectionProvider = Provider<CosmeticCollection>((_) {
   return const CosmeticCollection(
+    profilePictures: [
+      defaultProfilePicture,
+      crownProfilePicture,
+      starProfilePicture,
+      shieldProfilePicture,
+    ],
     masterPieces: [defaultMasterPiece, woodMasterPiece, stoneMasterPiece],
     studentPieces: [defaultStudentPiece, woodStudentPiece, stoneStudentPiece],
     thrones: [defaultThrone, beatingHeartThrone],

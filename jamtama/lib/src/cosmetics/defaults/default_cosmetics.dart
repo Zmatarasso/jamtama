@@ -6,6 +6,7 @@ import '../models/cosmetic_loadout.dart';
 import '../models/master_piece_cosmetic.dart';
 import '../models/piece_cosmetic.dart' show PieceStyle;
 import '../models/move_effect_cosmetic.dart';
+import '../models/profile_picture_cosmetic.dart';
 import '../models/scenery_cosmetic.dart';
 import '../models/student_piece_cosmetic.dart';
 import '../models/throne_cosmetic.dart' show ThroneCosmetic, ThroneStyle;
@@ -124,7 +125,38 @@ const glitterMoveEffect = MoveEffectCosmetic(
   type: MoveEffectType.glitter,
 );
 
+// ── Profile pictures ────────────────────────────────────────────────────────
+
+const defaultProfilePicture = ProfilePictureCosmetic(
+  id: 'avatar_default',
+  name: 'Default',
+  fallbackIcon: Icons.person,
+  fallbackColor: Color(0xFF8A7F7F),
+);
+
+const crownProfilePicture = ProfilePictureCosmetic(
+  id: 'avatar_crown',
+  name: 'Crown',
+  fallbackIcon: Icons.workspace_premium,
+  fallbackColor: Color(0xFFD4AF37),
+);
+
+const starProfilePicture = ProfilePictureCosmetic(
+  id: 'avatar_star',
+  name: 'Star',
+  fallbackIcon: Icons.star,
+  fallbackColor: Color(0xFFFFD700),
+);
+
+const shieldProfilePicture = ProfilePictureCosmetic(
+  id: 'avatar_shield',
+  name: 'Shield',
+  fallbackIcon: Icons.shield,
+  fallbackColor: Color(0xFF4A90A4),
+);
+
 const defaultLoadout = CosmeticLoadout(
+  profilePicture: defaultProfilePicture,
   masterPiece: defaultMasterPiece,
   studentPiece: defaultStudentPiece,
   throne: defaultThrone,

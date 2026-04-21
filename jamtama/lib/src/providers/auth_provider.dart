@@ -4,26 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/firebase_user_data_repository.dart';
 import '../data/user_data_repository_provider.dart';
 
-/// Live Firebase auth state. Rebuilds widgets whenever sign-in status changes.
+/// Live Firebase user state.
+///
+/// Uses `userChanges()` rather than `authStateChanges()` so the stream
+/// fires on credential linking (anonymous → email) and profile updates
+/// (updateDisplayName), not only sign-in / sign-out. Without this, the
+/// UI will not refresh after [FirebaseUserDataRepository.linkEmail].
 final authProvider = StreamProvider<User?>(
-  (ref) => FirebaseAuth.instance.authStateChanges(),
+  (ref) => FirebaseAuth.instance.userChanges(),
 );
-
-/// The display name the player has set, or null.
-/// Backed by [UserDataRepository] so it works offline too.
-class DisplayNameNotifier extends Notifier<String?> {
-  @override
-  String? build() =>
-      ref.read(userDataRepositoryProvider).loadDisplayName();
-
-  Future<void> save(String name) async {
-    await ref.read(userDataRepositoryProvider).saveDisplayName(name);
-    state = name;
-  }
-}
-
-final displayNameProvider =
-    NotifierProvider<DisplayNameNotifier, String?>(DisplayNameNotifier.new);
 
 /// Convenience — true if the current user is anonymous (or not signed in).
 final isAnonymousProvider = Provider<bool>((ref) {

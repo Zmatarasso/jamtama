@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 /// Every independently-equippable cosmetic slot.
 /// Used by the Collection UI to know which category to show.
 enum CosmeticSlotType {
+  profilePicture,
   masterPiece,
   studentPiece,
   throne,
@@ -15,6 +16,7 @@ enum CosmeticSlotType {
 
 extension CosmeticSlotTypeX on CosmeticSlotType {
   String get label => switch (this) {
+        CosmeticSlotType.profilePicture => 'Avatar',
         CosmeticSlotType.masterPiece => 'Master',
         CosmeticSlotType.studentPiece => 'Student',
         CosmeticSlotType.throne => 'Throne',
@@ -26,6 +28,7 @@ extension CosmeticSlotTypeX on CosmeticSlotType {
       };
 
   IconData get icon => switch (this) {
+        CosmeticSlotType.profilePicture => Icons.face,
         CosmeticSlotType.masterPiece => Icons.star,
         CosmeticSlotType.studentPiece => Icons.circle,
         CosmeticSlotType.throne => Icons.account_balance,
@@ -42,7 +45,8 @@ extension CosmeticSlotTypeX on CosmeticSlotType {
   /// These are designed to be overlaid on a graphic later — adjust freely
   /// without touching any other code.
   Offset get paperDollOffset => switch (this) {
-        CosmeticSlotType.scenery => const Offset(0.50, 0.10),
+        CosmeticSlotType.profilePicture => const Offset(0.18, 0.10),
+        CosmeticSlotType.scenery => const Offset(0.82, 0.10),
         CosmeticSlotType.uiSounds => const Offset(0.18, 0.35),
         CosmeticSlotType.moveEffect => const Offset(0.82, 0.35),
         CosmeticSlotType.masterPiece => const Offset(0.50, 0.28),

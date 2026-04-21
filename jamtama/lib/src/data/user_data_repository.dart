@@ -70,13 +70,6 @@ abstract class UserDataRepository {
 
   Future<void> saveTutorialDone(bool done);
 
-  // ── Profile ────────────────────────────────────────────────────────────────
-
-  /// Returns the player's chosen display name, or null if not set.
-  String? loadDisplayName();
-
-  Future<void> saveDisplayName(String name);
-
   // ── Unlocks ────────────────────────────────────────────────────────────────
 
   /// IDs of cards the player owns. Null = not yet persisted (use starter set).

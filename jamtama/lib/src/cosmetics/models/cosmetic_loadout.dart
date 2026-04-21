@@ -1,4 +1,5 @@
 import 'master_piece_cosmetic.dart';
+import 'profile_picture_cosmetic.dart';
 import 'student_piece_cosmetic.dart';
 import 'throne_cosmetic.dart';
 import 'board_cosmetic.dart';
@@ -11,6 +12,7 @@ import 'sound_pack.dart';
 /// session. Each slot can be swapped without affecting the others — this is
 /// the data model behind the unlockable cosmetics system.
 class CosmeticLoadout {
+  final ProfilePictureCosmetic profilePicture;
   final MasterPieceCosmetic masterPiece;
   final StudentPieceCosmetic studentPiece;
   final ThroneCosmetic throne;
@@ -23,6 +25,7 @@ class CosmeticLoadout {
   final SoundPack soundPack;
 
   const CosmeticLoadout({
+    required this.profilePicture,
     required this.masterPiece,
     required this.studentPiece,
     required this.throne,
@@ -34,6 +37,7 @@ class CosmeticLoadout {
   });
 
   CosmeticLoadout copyWith({
+    ProfilePictureCosmetic? profilePicture,
     MasterPieceCosmetic? masterPiece,
     StudentPieceCosmetic? studentPiece,
     ThroneCosmetic? throne,
@@ -44,6 +48,7 @@ class CosmeticLoadout {
     SoundPack? soundPack,
   }) =>
       CosmeticLoadout(
+        profilePicture: profilePicture ?? this.profilePicture,
         masterPiece: masterPiece ?? this.masterPiece,
         studentPiece: studentPiece ?? this.studentPiece,
         throne: throne ?? this.throne,
