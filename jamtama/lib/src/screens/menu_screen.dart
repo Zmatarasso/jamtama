@@ -5,6 +5,7 @@ import '../providers/match_provider.dart';
 import '../providers/tutorial_provider.dart';
 import '../providers/wallet_provider.dart';
 import 'collection_screen.dart';
+import 'matchmaking_screen.dart';
 import 'options_screen.dart';
 import 'shop_screen.dart';
 
@@ -74,15 +75,13 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                       final notifier = ref.read(tutorialProvider.notifier);
                       if (!notifier.isDone) {
                         notifier.start();
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Matchmaking coming soon'),
-                            duration: Duration(seconds: 2),
-                            backgroundColor: Color(0xFF3A2010),
-                          ),
-                        );
+                        return;
                       }
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const MatchmakingScreen(),
+                        ),
+                      );
                     },
                   ),
                   const SizedBox(height: 14),

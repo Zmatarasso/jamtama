@@ -1,26 +1,43 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../cosmetics/providers/cosmetic_loadout_provider.dart';
 import '../data/card_definitions.dart';
 import '../game_logic.dart';
 import '../models/card.dart';
 import '../models/deck.dart';
 import '../models/match_state.dart';
+import '../models/opponent.dart';
 import '../models/piece.dart';
 import '../models/round_state.dart';
 import '../models/saved_deck.dart';
+import '../services/multiplayer_service.dart';
 
 class MatchNotifier extends Notifier<MatchState> {
+  Timer? _matchmakingTimer;
+  String? _currentQueueId;
+  Opponent? _currentOpponent;
+
+  /// Last-generated AI-fallback opponent. Exposed so UI (game screen, round
+  /// over dialog) can show the opposing name/cosmetics.
+  Opponent? get currentOpponent => _currentOpponent;
+
   @override
-  MatchState build() => MatchState(
-        phase: MatchPhase.menu,
-        redDeck: redDefaultDeck,
-        blueDeck: blueDefaultDeck,
-        redRemaining: List.of(redDefaultDeck.cards),
-        blueRemaining: List.of(blueDefaultDeck.cards),
-      );
+  MatchState build() {
+    ref.onDispose(() {
+      _matchmakingTimer?.cancel();
+    });
+    return MatchState(
+      phase: MatchPhase.menu,
+      redDeck: redDefaultDeck,
+      blueDeck: blueDefaultDeck,
+      redRemaining: List.of(redDefaultDeck.cards),
+      blueRemaining: List.of(blueDefaultDeck.cards),
+    );
+  }
 
   void startLocalMatch() {
     state = state.copyWith(
@@ -347,7 +364,83 @@ class MatchNotifier extends Notifier<MatchState> {
 
   /// Return to the main menu.
   void returnToMenu() {
+    _matchmakingTimer?.cancel();
+    _currentQueueId = null;
+    _currentOpponent = null;
     state = build();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Matchmaking (v1: enqueue → 15s timeout → AI fallback)
+  // ---------------------------------------------------------------------------
+
+  /// Called from "Find Online Match" → the [MatchmakingScreen] drives the
+  /// timer. Enqueues the player and sets up the fallback timer.
+  Future<void> startNetworkMatch() async {
+    final multiplayer = ref.read(multiplayerServiceProvider);
+    final cosmetics = _currentCosmeticPayload();
+
+    try {
+      _currentQueueId =
+          await multiplayer.enqueue(cosmeticLoadout: cosmetics);
+    } catch (_) {
+      // Offline / rules reject — fall back to AI immediately.
+      _fallbackToAi(cosmetics);
+      return;
+    }
+
+    _matchmakingTimer?.cancel();
+    _matchmakingTimer = Timer(const Duration(seconds: 15), () {
+      _fallbackToAi(cosmetics);
+    });
+  }
+
+  /// Cancel button handler — aborts the search and returns to menu phase.
+  void cancelMatchmaking() {
+    _matchmakingTimer?.cancel();
+    _matchmakingTimer = null;
+    final id = _currentQueueId;
+    if (id != null) {
+      ref.read(multiplayerServiceProvider).dequeue(id);
+      _currentQueueId = null;
+    }
+    _currentOpponent = null;
+    state = state.copyWith(phase: MatchPhase.menu);
+  }
+
+  void _fallbackToAi(Map<String, dynamic> playerCosmetics) {
+    _matchmakingTimer?.cancel();
+    _matchmakingTimer = null;
+    final id = _currentQueueId;
+    if (id != null) {
+      ref.read(multiplayerServiceProvider).dequeue(id);
+      _currentQueueId = null;
+    }
+
+    _currentOpponent = Opponent(
+      Opponent.generateName(),
+      Map<String, dynamic>.from(playerCosmetics),
+    );
+
+    // Switch into the AI path. startTestMatch bypasses deck selection and
+    // drafting, which matches "opponent found, jump into the game".
+    startTestMatch();
+  }
+
+  /// Serialize the equipped loadout IDs for the matchmaking queue payload.
+  Map<String, dynamic> _currentCosmeticPayload() {
+    final l = ref.read(cosmeticLoadoutProvider);
+    return {
+      'profilePictureId': l.profilePicture.id,
+      'masterPieceId': l.masterPiece.id,
+      'studentPieceId': l.studentPiece.id,
+      'throneId': l.throne.id,
+      'boardId': l.board.id,
+      'sceneryId': l.scenery.id,
+      'cardBackId': l.cardBack.id,
+      'moveEffectId': l.moveEffect.id,
+      'soundPackId': l.soundPack.id,
+    };
   }
 
   // Move computation delegated to game_logic.dart for testability.

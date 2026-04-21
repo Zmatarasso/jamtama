@@ -933,6 +933,8 @@ class _CosmeticsTabState extends ConsumerState<_CosmeticsTab> {
 
     final notifier = ref.read(cosmeticLoadoutProvider.notifier);
     switch (slot) {
+      case CosmeticSlotType.profilePicture:
+        notifier.equipProfilePicture(preview.profilePicture);
       case CosmeticSlotType.masterPiece:
         notifier.equipMasterPiece(preview.masterPiece);
       case CosmeticSlotType.studentPiece:
@@ -1256,6 +1258,15 @@ class _CosmeticsRoster extends ConsumerWidget {
 
   List<_RosterEntry> _entries(CosmeticCollection collection) {
     return switch (slot) {
+      CosmeticSlotType.profilePicture => collection.profilePictures
+          .map((c) => _RosterEntry(
+                id: c.id,
+                name: c.name,
+                isEquipped: equipped.profilePicture.id == c.id,
+                isPreviewing: preview?.profilePicture.id == c.id,
+                onPreview: () => onPreview(equipped.copyWith(profilePicture: c)),
+              ))
+          .toList(),
       CosmeticSlotType.masterPiece => collection.masterPieces
           .map((c) => _RosterEntry(
                 id: c.id,
@@ -1334,6 +1345,8 @@ class _CosmeticsRoster extends ConsumerWidget {
   bool get _hasUnsavedPreview {
     if (preview == null) return false;
     return switch (slot) {
+      CosmeticSlotType.profilePicture =>
+        preview!.profilePicture.id != equipped.profilePicture.id,
       CosmeticSlotType.masterPiece =>
         preview!.masterPiece.id != equipped.masterPiece.id,
       CosmeticSlotType.studentPiece =>

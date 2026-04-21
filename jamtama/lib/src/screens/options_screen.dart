@@ -1,6 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../cosmetics/providers/cosmetic_loadout_provider.dart';
+import '../profile/display_name_validator.dart';
+import '../profile/profile.dart';
+import '../profile/profile_provider.dart';
 import '../providers/audio_settings_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/tutorial_provider.dart';
@@ -43,13 +49,11 @@ class OptionsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          // ── Account ───────────────────────────────────────────────────────
           _SectionHeader(label: 'Account'),
           const SizedBox(height: 12),
           const _AccountSection(),
           const SizedBox(height: 32),
 
-          // ── Audio ─────────────────────────────────────────────────────────
           _SectionHeader(label: 'Audio'),
           const SizedBox(height: 16),
           _VolumeSlider(
@@ -74,7 +78,6 @@ class OptionsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 32),
 
-          // ── Tutorial ──────────────────────────────────────────────────────
           _SectionHeader(label: 'Tutorial'),
           const SizedBox(height: 16),
           _ResetTutorialButton(),
@@ -84,8 +87,6 @@ class OptionsScreen extends ConsumerWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Section header
 // ---------------------------------------------------------------------------
 
 class _SectionHeader extends StatelessWidget {
@@ -113,7 +114,7 @@ class _SectionHeader extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Account section — display name + auth state
+// Account section — avatar + display name + auth controls.
 // ---------------------------------------------------------------------------
 
 class _AccountSection extends ConsumerWidget {
@@ -121,13 +122,13 @@ class _AccountSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(profileProvider);
     final isAnon = ref.watch(isAnonymousProvider);
     final email = ref.watch(userEmailProvider);
-    final displayName = ref.watch(displayNameProvider);
 
     return Column(
       children: [
-        _DisplayNameRow(displayName: displayName),
+        _ProfileRow(profile: profile),
         const SizedBox(height: 10),
         _AuthRow(isAnonymous: isAnon, email: email),
       ],
@@ -136,25 +137,149 @@ class _AccountSection extends ConsumerWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Display name row — editable inline
+// Profile row — avatar + display name + change/cooldown UI.
 // ---------------------------------------------------------------------------
 
-class _DisplayNameRow extends ConsumerStatefulWidget {
-  final String? displayName;
-  const _DisplayNameRow({required this.displayName});
+class _ProfileRow extends ConsumerWidget {
+  final Profile profile;
+  const _ProfileRow({required this.profile});
 
   @override
-  ConsumerState<_DisplayNameRow> createState() => _DisplayNameRowState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final avatar = ref.watch(
+        cosmeticLoadoutProvider.select((l) => l.profilePicture));
+    final canChange =
+        ref.read(profileProvider.notifier).canChangeDisplayName;
+    final remaining =
+        ref.read(profileProvider.notifier).timeUntilNextChange;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: _surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _surfaceLight),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: _surfaceLight,
+            child: Icon(
+              avatar.fallbackIcon,
+              color: avatar.fallbackColor,
+              size: 26,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  profile.displayName ?? 'No display name',
+                  style: TextStyle(
+                    color: profile.displayName != null
+                        ? _textPrimary
+                        : _textSecondary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                if (!canChange && remaining != null)
+                  _CountdownText(remaining: remaining)
+                else
+                  const Text(
+                    'Tap edit to change your name',
+                    style: TextStyle(color: _textSecondary, fontSize: 11),
+                  ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: Icon(
+              canChange ? Icons.edit_outlined : Icons.lock_outline,
+              color: canChange ? _textSecondary : _textSecondary.withAlpha(120),
+              size: 18,
+            ),
+            onPressed: canChange
+                ? () => _openEditDialog(context, ref, profile.displayName)
+                : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openEditDialog(
+      BuildContext context, WidgetRef ref, String? current) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => _DisplayNameDialog(initial: current ?? ''),
+    );
+  }
 }
 
-class _DisplayNameRowState extends ConsumerState<_DisplayNameRow> {
-  late final TextEditingController _controller;
-  bool _editing = false;
+class _CountdownText extends StatefulWidget {
+  final Duration remaining;
+  const _CountdownText({required this.remaining});
+
+  @override
+  State<_CountdownText> createState() => _CountdownTextState();
+}
+
+class _CountdownTextState extends State<_CountdownText> {
+  late Duration _remaining;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.displayName ?? '');
+    _remaining = widget.remaining;
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!mounted) return;
+      setState(() {
+        _remaining -= const Duration(seconds: 30);
+        if (_remaining.isNegative) _remaining = Duration.zero;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final h = _remaining.inHours;
+    final m = _remaining.inMinutes.remainder(60);
+    final label = h > 0 ? 'Next change in ${h}h ${m}m' : 'Next change in ${m}m';
+    return Text(label,
+        style: const TextStyle(color: _textSecondary, fontSize: 11));
+  }
+}
+
+class _DisplayNameDialog extends ConsumerStatefulWidget {
+  final String initial;
+  const _DisplayNameDialog({required this.initial});
+
+  @override
+  ConsumerState<_DisplayNameDialog> createState() =>
+      _DisplayNameDialogState();
+}
+
+class _DisplayNameDialogState extends ConsumerState<_DisplayNameDialog> {
+  late final TextEditingController _controller;
+  String? _error;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initial);
   }
 
   @override
@@ -164,89 +289,93 @@ class _DisplayNameRowState extends ConsumerState<_DisplayNameRow> {
   }
 
   Future<void> _save() async {
-    final name = _controller.text.trim();
-    if (name.isEmpty) return;
-    await ref.read(displayNameProvider.notifier).save(name);
-    setState(() => _editing = false);
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    final err = await ref
+        .read(profileProvider.notifier)
+        .updateDisplayName(_controller.text);
+    if (!mounted) return;
+    if (err != null) {
+      setState(() {
+        _error = err;
+        _loading = false;
+      });
+      return;
+    }
+    Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: _surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _surfaceLight),
-      ),
-      child: Row(
+    return AlertDialog(
+      backgroundColor: _surface,
+      title: const Text('Change Display Name',
+          style: TextStyle(color: _textPrimary, fontWeight: FontWeight.bold)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.badge_outlined, color: _textSecondary, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _editing
-                ? TextField(
-                    controller: _controller,
-                    autofocus: true,
-                    style: const TextStyle(color: _textPrimary, fontSize: 15),
-                    decoration: InputDecoration(
-                      hintText: 'Enter display name',
-                      hintStyle:
-                          TextStyle(color: _textSecondary.withAlpha(150)),
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    onSubmitted: (_) => _save(),
-                  )
-                : Text(
-                    widget.displayName ?? 'Tap to set display name',
-                    style: TextStyle(
-                      color: widget.displayName != null
-                          ? _textPrimary
-                          : _textSecondary,
-                      fontSize: 15,
-                    ),
-                  ),
+          const Text(
+            'You can only change this once per day.',
+            style: TextStyle(color: _textSecondary, fontSize: 12),
           ),
-          if (_editing) ...[
-            TextButton(
-              onPressed: () => setState(() => _editing = false),
-              style: TextButton.styleFrom(
-                foregroundColor: _textSecondary,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          const SizedBox(height: 12),
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            style: const TextStyle(color: _textPrimary),
+            onChanged: (v) {
+              final res = validateDisplayName(v);
+              setState(() => _error = res.ok ? null : res.error);
+            },
+            decoration: InputDecoration(
+              hintText: 'Display name',
+              hintStyle: TextStyle(color: _textSecondary.withAlpha(150)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: _surfaceLight),
               ),
-              child: const Text('Cancel'),
-            ),
-            const SizedBox(width: 4),
-            TextButton(
-              onPressed: _save,
-              style: TextButton.styleFrom(
-                foregroundColor: _gold,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: _gold),
               ),
-              child: const Text('Save'),
+              filled: true,
+              fillColor: _bg,
+              isDense: true,
             ),
-          ] else
-            IconButton(
-              icon: const Icon(Icons.edit_outlined,
-                  color: _textSecondary, size: 18),
-              onPressed: () => setState(() => _editing = true),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            Text(_error!,
+                style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
+          ],
         ],
       ),
+      actions: [
+        TextButton(
+          onPressed: _loading ? null : () => Navigator.of(context).pop(),
+          child: const Text('Cancel',
+              style: TextStyle(color: _textSecondary)),
+        ),
+        TextButton(
+          onPressed: _loading || _error != null ? null : _save,
+          child: _loading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: _gold))
+              : const Text('Save', style: TextStyle(color: _gold)),
+        ),
+      ],
     );
   }
 }
 
 // ---------------------------------------------------------------------------
-// Auth row — shows email or anonymous state with login/upgrade buttons
+// Auth row — shows email or anonymous state with login/upgrade buttons.
 // ---------------------------------------------------------------------------
 
 class _AuthRow extends ConsumerWidget {
@@ -265,14 +394,10 @@ class _AuthRow extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: _surfaceLight,
-            child: Icon(
-              isAnonymous ? Icons.person_outline : Icons.person,
-              color: isAnonymous ? _textSecondary : _gold,
-              size: 20,
-            ),
+          Icon(
+            isAnonymous ? Icons.person_outline : Icons.verified_user,
+            color: isAnonymous ? _textSecondary : _gold,
+            size: 20,
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -283,7 +408,7 @@ class _AuthRow extends ConsumerWidget {
                   isAnonymous ? 'Guest' : (email ?? 'Signed in'),
                   style: const TextStyle(
                     color: _textPrimary,
-                    fontSize: 15,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -357,6 +482,7 @@ class _AuthRow extends ConsumerWidget {
     );
     if (confirm == true) {
       await firebaseRepo(ref)?.signOut();
+      await ref.read(profileProvider.notifier).clearLocal();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -395,7 +521,7 @@ class _AuthButton extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Auth dialog — create account or sign in
+// Auth dialog — create account or sign in.
 // ---------------------------------------------------------------------------
 
 class _AuthDialog extends ConsumerStatefulWidget {
@@ -409,6 +535,7 @@ class _AuthDialog extends ConsumerStatefulWidget {
 class _AuthDialogState extends ConsumerState<_AuthDialog> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _nameController = TextEditingController();
   bool _loading = false;
   String? _error;
   bool _obscurePassword = true;
@@ -417,15 +544,31 @@ class _AuthDialogState extends ConsumerState<_AuthDialog> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
+
+  bool get _isCreate => widget.mode == _AuthMode.createAccount;
 
   Future<void> _submit() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
+    final name = _nameController.text.trim();
+
     if (email.isEmpty || password.isEmpty) {
       setState(() => _error = 'Please fill in all fields');
       return;
+    }
+    if (_isCreate) {
+      if (name.isEmpty) {
+        setState(() => _error = 'Please enter a display name.');
+        return;
+      }
+      final v = validateDisplayName(name);
+      if (!v.ok) {
+        setState(() => _error = v.error);
+        return;
+      }
     }
 
     setState(() {
@@ -434,9 +577,15 @@ class _AuthDialogState extends ConsumerState<_AuthDialog> {
     });
 
     final repo = firebaseRepo(ref);
-    if (repo == null) return;
+    if (repo == null) {
+      setState(() {
+        _error = 'Auth unavailable.';
+        _loading = false;
+      });
+      return;
+    }
 
-    final error = widget.mode == _AuthMode.createAccount
+    final error = _isCreate
         ? await repo.linkEmail(email, password)
         : await repo.signInWithEmail(email, password);
 
@@ -447,46 +596,83 @@ class _AuthDialogState extends ConsumerState<_AuthDialog> {
         _error = error;
         _loading = false;
       });
-    } else {
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(widget.mode == _AuthMode.createAccount
-              ? 'Account created! Your progress is now saved.'
-              : 'Signed in! Your progress has been restored.'),
-          backgroundColor: _surface,
-        ),
-      );
+      return;
     }
+
+    if (_isCreate) {
+      final nameErr = await ref
+          .read(profileProvider.notifier)
+          .initializeOnSignUp(name);
+      if (!mounted) return;
+      if (nameErr != null) {
+        setState(() {
+          _error = nameErr;
+          _loading = false;
+        });
+        return;
+      }
+    }
+
+    Navigator.of(context).pop();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_isCreate
+            ? 'Account created! Your progress is now saved.'
+            : 'Signed in! Your progress has been restored.'),
+        backgroundColor: _surface,
+      ),
+    );
+  }
+
+  Future<void> _forgotPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      setState(() => _error = 'Enter your email first.');
+      return;
+    }
+    final repo = firebaseRepo(ref);
+    if (repo == null) return;
+    final err = await repo.sendPasswordReset(email);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(err ?? 'Password reset email sent.'),
+        backgroundColor: _surface,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final isCreate = widget.mode == _AuthMode.createAccount;
     return AlertDialog(
       backgroundColor: _surface,
       title: Text(
-        isCreate ? 'Create Account' : 'Sign In',
+        _isCreate ? 'Create Account' : 'Sign In',
         style: const TextStyle(
             color: _textPrimary, fontWeight: FontWeight.bold),
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            isCreate
+            _isCreate
                 ? 'Link an email to save your progress across devices.'
-                : 'Sign in to restore your collection on this device.',
+                : 'Signing in will replace your current guest progress with your account\'s progress.',
             style: TextStyle(
                 color: _textSecondary.withAlpha(200), fontSize: 13),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+          if (_isCreate) ...[
+            _DialogField(controller: _nameController, label: 'Display Name'),
+            const SizedBox(height: 10),
+          ],
           _DialogField(
             controller: _emailController,
             label: 'Email',
             keyboardType: TextInputType.emailAddress,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           _DialogField(
             controller: _passwordController,
             label: 'Password',
@@ -503,6 +689,20 @@ class _AuthDialogState extends ConsumerState<_AuthDialog> {
                   setState(() => _obscurePassword = !_obscurePassword),
             ),
           ),
+          if (!_isCreate)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: _loading ? null : _forgotPassword,
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text('Forgot password?',
+                    style: TextStyle(color: _gold, fontSize: 12)),
+              ),
+            ),
           if (_error != null) ...[
             const SizedBox(height: 12),
             Text(
@@ -529,7 +729,7 @@ class _AuthDialogState extends ConsumerState<_AuthDialog> {
                       strokeWidth: 2, color: _gold),
                 )
               : Text(
-                  isCreate ? 'Create Account' : 'Sign In',
+                  _isCreate ? 'Create Account' : 'Sign In',
                   style: const TextStyle(color: _gold),
                 ),
         ),
@@ -581,8 +781,6 @@ class _DialogField extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Volume slider row
 // ---------------------------------------------------------------------------
 
 class _VolumeSlider extends StatelessWidget {
@@ -652,8 +850,6 @@ class _VolumeSlider extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Reset tutorial button
 // ---------------------------------------------------------------------------
 
 class _ResetTutorialButton extends ConsumerWidget {

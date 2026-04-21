@@ -6,6 +6,7 @@ import 'models/match_state.dart';
 import 'models/round_state.dart';
 import 'providers/match_provider.dart';
 import 'providers/wallet_provider.dart';
+import 'screens/account_gate.dart';
 import 'screens/card_draft_screen.dart';
 import 'screens/deck_selection_screen.dart';
 import 'screens/game_screen.dart';
@@ -75,7 +76,7 @@ class _RootRouter extends ConsumerWidget {
     });
 
     final screen = switch (match.phase) {
-      MatchPhase.menu       => const MenuScreen(),
+      MatchPhase.menu       => const AccountGate(child: MenuScreen()),
       MatchPhase.deckSelection => const DeckSelectionScreen(),
       MatchPhase.draftingRed   => const CardDraftScreen(),
       // In non-local modes Blue is always automated — _autoConfirmBlue() in the

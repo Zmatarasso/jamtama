@@ -7,6 +7,7 @@ import '../models/card_back_cosmetic.dart';
 import '../models/cosmetic_loadout.dart';
 import '../models/master_piece_cosmetic.dart';
 import '../models/move_effect_cosmetic.dart';
+import '../models/profile_picture_cosmetic.dart';
 import '../models/scenery_cosmetic.dart';
 import '../models/sound_pack.dart';
 import '../models/student_piece_cosmetic.dart';
@@ -40,6 +41,9 @@ class CosmeticLoadoutNotifier extends Notifier<CosmeticLoadout> {
   }
 
   // ── Equip methods ────────────────────────────────────────────────────────
+
+  void equipProfilePicture(ProfilePictureCosmetic item) =>
+      _update(state.copyWith(profilePicture: item));
 
   void equipMasterPiece(MasterPieceCosmetic item) =>
       _update(state.copyWith(masterPiece: item));
@@ -83,6 +87,8 @@ class CosmeticLoadoutNotifier extends Notifier<CosmeticLoadout> {
         list.firstWhere((e) => getId(e) == id, orElse: () => fallback);
 
     return CosmeticLoadout(
+      profilePicture: pick(c.profilePictures, ids['profilePictureId'],
+          defaultLoadout.profilePicture, (e) => e.id),
       masterPiece: pick(c.masterPieces, ids['masterPieceId'],
           defaultLoadout.masterPiece, (e) => e.id),
       studentPiece: pick(c.studentPieces, ids['studentPieceId'],
@@ -102,6 +108,7 @@ class CosmeticLoadoutNotifier extends Notifier<CosmeticLoadout> {
   }
 
   Map<String, String> _idsFromLoadout(CosmeticLoadout l) => {
+        'profilePictureId': l.profilePicture.id,
         'masterPieceId': l.masterPiece.id,
         'studentPieceId': l.studentPiece.id,
         'throneId': l.throne.id,
