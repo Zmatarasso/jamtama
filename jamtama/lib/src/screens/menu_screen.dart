@@ -151,7 +151,7 @@ class _Title extends StatelessWidget {
     return Column(
       children: [
         Text(
-          'JAMTAMA',
+          'ROYAL RUCKUS',
           style: TextStyle(
             fontSize: 52,
             fontWeight: FontWeight.w900,

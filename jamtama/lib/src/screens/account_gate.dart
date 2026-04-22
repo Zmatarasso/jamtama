@@ -86,8 +86,8 @@ class _GateOverlay extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text(
-                      'WELCOME TO JAMTAMA',
+                     const Text(
+                       'ROYAL RUCKUS',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: _gold,

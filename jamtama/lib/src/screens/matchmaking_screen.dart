@@ -22,6 +22,7 @@ class _MatchmakingScreenState extends ConsumerState<MatchmakingScreen> {
   static const _searchSeconds = 15;
   int _secondsLeft = _searchSeconds;
   Timer? _ticker;
+  bool _hasPopped = false;
 
   @override
   void initState() {
@@ -54,9 +55,12 @@ class _MatchmakingScreenState extends ConsumerState<MatchmakingScreen> {
   Widget build(BuildContext context) {
     // Pop automatically once match state moves out of menu (AI fallback fires).
     ref.listen<MatchState>(matchProvider, (prev, next) {
-      if (!mounted) return;
+      if (!mounted || _hasPopped) return;
       if (next.phase != MatchPhase.menu && next.phase != MatchPhase.matchOver) {
-        Navigator.of(context).pop();
+        _hasPopped = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) Navigator.of(context).pop();
+        });
       }
     });
 

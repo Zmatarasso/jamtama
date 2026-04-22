@@ -101,33 +101,43 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                         child: Stack(
                           clipBehavior: Clip.none,
                           children: [
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                final boardSize =
-                                    (min(constraints.maxWidth, constraints.maxHeight) - 16.0)
-                                    * _boardScale;
-                                // Cache for animation position math (not setState — bookkeeping).
-                                _lastBoardSize = boardSize;
-                                _lastBoardAreaSize = Size(
-                                  constraints.maxWidth,
-                                  constraints.maxHeight,
-                                );
-                                _lastBoardTop = constraints.maxHeight - boardSize;
-                                return Positioned(
-                                  left: _boardLeft,
-                                  top: _lastBoardTop,
-                                  width: boardSize,
-                                  height: boardSize,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(8),
-                                    child: _Board(
-                                      round: round,
-                                      board: board,
-                                      onMoveExecuted: _handleMoveExecuted,
-                                    ),
-                                  ),
-                                );
-                              },
+                            // Positioned.fill lets LayoutBuilder measure the full
+                            // Stack area, then we nest an inner Stack so that the
+                            // Positioned board widget has a valid Stack parent.
+                            Positioned.fill(
+                              child: LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final boardSize =
+                                      (min(constraints.maxWidth, constraints.maxHeight) - 16.0)
+                                      * _boardScale;
+                                  // Cache for animation position math (not setState — bookkeeping).
+                                  _lastBoardSize = boardSize;
+                                  _lastBoardAreaSize = Size(
+                                    constraints.maxWidth,
+                                    constraints.maxHeight,
+                                  );
+                                  _lastBoardTop = constraints.maxHeight - boardSize;
+                                  return Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      Positioned(
+                                        left: _boardLeft,
+                                        top: _lastBoardTop,
+                                        width: boardSize,
+                                        height: boardSize,
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8),
+                                          child: _Board(
+                                            round: round,
+                                            board: board,
+                                            onMoveExecuted: _handleMoveExecuted,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
                             ),
 
                             // ── Animation overlays ──────────────────────────
